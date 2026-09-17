@@ -21,6 +21,7 @@ import {
   readEpubPreferences,
   writeEpubPreferences,
 } from "@/app/read/[...key]/features/appearance/epub-preferences";
+import { EpubProgressBar } from "@/app/read/[...key]/features/progress/epub-progress-chrome";
 import { useReadingPosition } from "@/app/read/[...key]/features/progress/position";
 import { ReaderMarksPanel } from "@/app/read/[...key]/features/reader-marks/reader-marks-panel";
 import { useReaderMarks } from "@/app/read/[...key]/features/reader-marks/use-reader-marks";
@@ -88,7 +89,7 @@ export function EpubReader({
   const restored = preferencesRestored;
   const { view: readingView, columns } = preferences;
   const preferenceCss = epubPreferenceCss(preferences);
-  const { container, rendition, status, label, toc } = useEpubRuntime({
+  const { container, rendition, status, progress, toc } = useEpubRuntime({
     opfUrl,
     restored,
     readingView,
@@ -295,10 +296,13 @@ export function EpubReader({
         )}
       </div>
 
+      <EpubProgressBar percent={progress.bookPercent} />
       {chrome.visible && (
         <EpubControls
           toc={toc}
-          label={label}
+          label={progress.chapterLabel}
+          bookPercent={progress.bookPercent}
+          chapterPercent={progress.chapterPercent}
           preferences={preferences}
           marksWritable={marks.writable}
           onTurn={turn}
