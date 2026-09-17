@@ -39,11 +39,13 @@ const MIN_SPREAD_WIDTH = 800;
 export function PdfReader({
   url,
   bookId,
+  title,
   saved,
   canSync,
 }: {
   url: string;
   bookId: string;
+  title: string;
   saved: BookProgress | null;
   canSync: boolean;
 }) {
@@ -256,6 +258,8 @@ export function PdfReader({
             className="fixed inset-0 z-30 bg-black/20"
           />
           <ReaderMarksPanel
+            bookId={bookId}
+            title={title}
             marks={marks.marks.filter((mark) => mark.anchor.format === "pdf")}
             error={marks.error}
             writable={marks.writable}

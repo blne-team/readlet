@@ -91,9 +91,19 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
       downloadUrl={`/download/${encodeKey(fileKey)}`}
     >
       {extension(fileKey) === "epub" ? (
-        <EpubBody fileKey={fileKey} bookId={book.id} userId={user.id} />
+        <EpubBody
+          fileKey={fileKey}
+          bookId={book.id}
+          title={book.title}
+          userId={user.id}
+        />
       ) : extension(fileKey) === "pdf" ? (
-        <PdfBody fileKey={fileKey} bookId={book.id} userId={user.id} />
+        <PdfBody
+          fileKey={fileKey}
+          bookId={book.id}
+          title={book.title}
+          userId={user.id}
+        />
       ) : (
         // Anything else is handed to the browser's own viewer, which for a
         // format this app has no reader for is better than nothing. The inline
@@ -111,10 +121,12 @@ export default async function ReadPage(props: PageProps<"/read/[...key]">) {
 async function EpubBody({
   fileKey,
   bookId,
+  title,
   userId,
 }: {
   fileKey: string;
   bookId: string;
+  title: string;
   userId: string;
 }) {
   const { content, progress } = await getServices();
@@ -137,6 +149,7 @@ async function EpubBody({
     <EpubReader
       opfUrl={`/book/${encodeKey(fileKey)}/${encodeKey(opfPath)}`}
       bookId={bookId}
+      title={title}
       saved={saved}
       canSync={progress.writable}
     />
@@ -155,10 +168,12 @@ async function EpubBody({
 async function PdfBody({
   fileKey,
   bookId,
+  title,
   userId,
 }: {
   fileKey: string;
   bookId: string;
+  title: string;
   userId: string;
 }) {
   const { progress } = await getServices();
@@ -168,6 +183,7 @@ async function PdfBody({
     <PdfReader
       url={`/download/${encodeKey(fileKey)}`}
       bookId={bookId}
+      title={title}
       saved={saved}
       canSync={progress.writable}
     />

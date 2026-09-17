@@ -3,14 +3,17 @@
 import { X } from "lucide-react";
 import { AnnotationList } from "@/app/read/[...key]/features/annotations/annotation-list";
 import { BookmarkList } from "@/app/read/[...key]/features/bookmarks/bookmark-list";
-import { BUTTON_ROUND } from "@/app/ui";
+import { BUTTON_QUIET, BUTTON_ROUND } from "@/app/ui";
 import type {
   BookmarkMark,
   HighlightMark,
   ReaderMark,
 } from "@/domain/reader-marks";
+import { downloadMarksExport } from "./download-marks-export";
 
 export function ReaderMarksPanel({
+  bookId,
+  title,
   marks,
   error,
   writable,
@@ -19,6 +22,8 @@ export function ReaderMarksPanel({
   onRemove,
   onClose,
 }: {
+  bookId: string;
+  title?: string;
   marks: ReaderMark[];
   error: string | null;
   writable: boolean;
@@ -34,16 +39,34 @@ export function ReaderMarksPanel({
       aria-label="Bookmarks and highlights"
       className="reader-side-panel fixed inset-y-0 left-0 z-40 flex w-80 max-w-[calc(100vw-2rem)] flex-col border-r border-separator bg-background shadow-page"
     >
-      <header className="flex min-h-13 items-center justify-between border-b border-separator px-3">
-        <h2 className="text-sm font-medium">Bookmarks and highlights</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close marks"
-          className={BUTTON_ROUND}
-        >
-          <X aria-hidden="true" className="size-4" />
-        </button>
+      <header className="border-b border-separator">
+        <div className="flex min-h-13 items-center justify-between px-3">
+          <h2 className="text-sm font-medium">Bookmarks and highlights</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close marks"
+            className={BUTTON_ROUND}
+          >
+            <X aria-hidden="true" className="size-4" />
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1 px-3 pb-2">
+          <button
+            type="button"
+            className={BUTTON_QUIET}
+            onClick={() => exportCurrentBook("md", bookId, title, marks)}
+          >
+            Export Markdown
+          </button>
+          <button
+            type="button"
+            className={BUTTON_QUIET}
+            onClick={() => exportCurrentBook("json", bookId, title, marks)}
+          >
+            Export JSON
+          </button>
+        </div>
       </header>
       {error && (
         <p role="alert" className="p-3 text-sm text-red-600">
@@ -72,6 +95,18 @@ export function ReaderMarksPanel({
         />
       </div>
     </aside>
+  );
+}
+
+function exportCurrentBook(
+  format: "json" | "md",
+  bookId: string,
+  title: string | undefined,
+  marks: ReaderMark[],
+) {
+  downloadMarksExport(
+    { bookId, title, exportedAt: new Date().toISOString(), marks },
+    format,
   );
 }
 
