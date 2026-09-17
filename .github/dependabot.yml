@@ -1,0 +1,27 @@
+version: 2
+
+updates:
+  # The root lockfile covers every workspace.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # @types/node tracks the runtime this targets, which engines pins to 24.
+      # Types describing a newer standard library would let code compile
+      # against APIs the declared floor does not have, so this one moves when
+      # the floor moves and not before.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Routine bumps arrive as one pull request; majors come on their own,
+      # because those are the ones worth reading.
+      routine:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

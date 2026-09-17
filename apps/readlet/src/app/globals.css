@@ -1,0 +1,183 @@
+@import "tailwindcss";
+@import "pdfjs-dist/legacy/web/pdf_viewer.css" layer(pdfjs);
+
+/*
+ * The palette follows Apple's semantic colors: a near-black label color
+ * rather than pure black, two muted grays for secondary and tertiary text,
+ * hairline separators, and translucent "fills" that read as surfaces without
+ * needing shadows. One accent — the system blue — carries every action.
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --secondary: #6e6e73;
+  --tertiary: #86868b;
+  --separator: rgb(0 0 0 / 0.08);
+  --fill: rgb(0 0 0 / 0.045);
+  --fill-hover: rgb(0 0 0 / 0.08);
+  --surface: #ffffff;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #161617;
+    --foreground: #f5f5f7;
+    --secondary: #a1a1a6;
+    --tertiary: #6e6e73;
+    --separator: rgb(255 255 255 / 0.12);
+    --fill: rgb(255 255 255 / 0.08);
+    --fill-hover: rgb(255 255 255 / 0.12);
+    --surface: #1d1d1f;
+    --accent: #0a84ff;
+    --accent-hover: #2b93ff;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-secondary: var(--secondary);
+  --color-tertiary: var(--tertiary);
+  --color-separator: var(--separator);
+  --color-fill: var(--fill);
+  --color-fill-hover: var(--fill-hover);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+
+  /* A sheet of paper on a desk: a hairline of contact and a wider, softer
+     cast below it. Two shadows rather than one, because a single blur reads as
+     a glow. */
+  --shadow-page:
+    0 1px 2px rgb(0 0 0 / 0.14), 0 10px 26px -12px rgb(0 0 0 / 0.24);
+
+  /* The system stack: SF Pro on Apple devices, each platform's own face
+     elsewhere. No font download, no layout shift. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.page-safe {
+  padding-top: max(2rem, env(safe-area-inset-top));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
+}
+
+/* Reader chrome reaches the physical edge in standalone mode without putting
+   controls beneath a notch, rounded corner, or home indicator. */
+.reader-topbar {
+  padding-block: 0.375rem;
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+  padding-top: max(0.375rem, env(safe-area-inset-top));
+}
+
+.reader-bottom-bar {
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+  padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+}
+
+.reader-loading-bar {
+  animation: reader-loading 1.4s ease-in-out infinite;
+}
+
+@keyframes reader-loading {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-loading-bar {
+    animation: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .page-safe {
+    padding-top: max(3rem, env(safe-area-inset-top));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+    padding-bottom: max(3rem, env(safe-area-inset-bottom));
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+  }
+
+  .reader-topbar {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .reader-bottom-bar {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-safe {
+    padding-top: max(4rem, env(safe-area-inset-top));
+    padding-bottom: max(4rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 1279px) {
+  .reader-side-panel {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* PDF.js owns page geometry and layers; Readlet supplies the reading surface. */
+.pdf-reader {
+  --page-margin: 12px auto;
+  --pdfViewer-padding-bottom: 12px;
+  --page-border: 0;
+  --page-bg-color: var(--page-paper, #fff);
+  --viewer-container-height: 100%;
+}
+
+.pdf-viewer-container {
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+}
+
+.pdf-reader .pdfViewer .page {
+  background: var(--page-paper, #fff);
+  box-shadow: var(--shadow-page);
+}
+
+.pdf-reader .pdfViewer .canvasWrapper {
+  border-radius: 3px;
+}
+
+.pdf-reader .pdfViewer canvas {
+  filter: var(--page-filter, none) contrast(var(--page-contrast, 1));
+}
+
+.pdf-reader .textLayer ::selection {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: transparent;
+}
+
+.pdf-reader .textLayer .highlight {
+  margin: -1px;
+  padding: 1px;
+  border-radius: 2px;
+  background-color: color-mix(in srgb, #ffd60a 55%, transparent);
+}
+
+.pdf-reader .textLayer .highlight.selected {
+  background-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}

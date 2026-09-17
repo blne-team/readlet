@@ -1,0 +1,53 @@
+{
+  "name": "readlet",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@10.34.5",
+  "description": "A self-hostable ebook library over object storage",
+  "author": "Murat Erkin Cicek",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blne-team/readlet.git"
+  },
+  "homepage": "https://github.com/blne-team/readlet#readme",
+  "bugs": {
+    "url": "https://github.com/blne-team/readlet/issues"
+  },
+  "keywords": [
+    "ebook",
+    "epub",
+    "library",
+    "self-hosted",
+    "cloudflare-workers",
+    "r2",
+    "calibre"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "pnpm": {
+    "overrides": {
+      "@xmldom/xmldom": "^0.8.14"
+    }
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:no-auth": "READLET_DEV_AUTH_BYPASS=1 turbo run dev",
+    "build": "turbo run build",
+    "check-types": "turbo run check-types",
+    "bundle": "turbo run bundle",
+    "sync": "turbo run sync --filter=@readlet/sync --log-prefix=none --output-logs=new-only --",
+    "demo": "turbo run build --filter=@readlet/fixtures --log-prefix=none --output-logs=errors-only && node tools/demo.mjs",
+    "deploy": "turbo run deploy --filter=@readlet/app --log-prefix=none --",
+    "preview": "turbo run preview --filter=@readlet/app --log-prefix=none --",
+    "test": "turbo run test",
+    "lint": "biome check",
+    "format": "biome format --write"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.8",
+    "@readlet/fixtures": "workspace:*",
+    "turbo": "^2.10.11"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "name": "@readlet/provider-fs",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Filesystem provider: the library as a directory, read and managed from Node",
+  "author": "Murat Erkin Cicek",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blne-team/readlet.git",
+    "directory": "packages/provider-fs"
+  },
+  "homepage": "https://github.com/blne-team/readlet#readme",
+  "bugs": {
+    "url": "https://github.com/blne-team/readlet/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "check-types": "tsc --build",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "node --test \"test/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@readlet/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "typescript": "^7.0.2"
+  }
+}

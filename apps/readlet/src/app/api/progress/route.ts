@@ -1,0 +1,93 @@
+import { enforceR2RateLimit } from "@/lib/rate-limit";
+import { getServices } from "@/services/container";
+import { isUnavailable } from "@/services/errors";
+import { routeUser } from "@/services/request-user";
+
+/** A CFI for a deep position is a couple of hundred characters at most. */
+const MAX_FIELD_LENGTH = 1024;
+
+/**
+ * Higher than any real book, and low enough that the stored number stays a
+ * number. The reader clamps a page to the document it actually opened, so this
+ * only has to keep nonsense out of the file rather than be exact.
+ */
+const MAX_PAGE = 1_000_000;
+
+function field(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0
+    ? value.slice(0, MAX_FIELD_LENGTH)
+    : undefined;
+}
+
+/** A page, counting from one — so zero is not one, and neither is a fraction. */
+function pageNumber(value: unknown): number | undefined {
+  return typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 1 &&
+    value <= MAX_PAGE
+    ? value
+    : undefined;
+}
+
+/**
+ * Records where a user got to in a book.
+ *
+ * A route handler rather than a server action because the reader also sends
+ * this from `pagehide`, where only `sendBeacon` is reliable, and a beacon can
+ * only post to a URL.
+ *
+ * The answer says whether it was stored. A client told `saved: false` retains
+ * its in-session position, which is what happens against a read-only library.
+ */
+export async function POST(request: Request) {
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return Response.json({ error: "expected JSON" }, { status: 400 });
+  }
+
+  const body = (payload ?? {}) as Record<string, unknown>;
+  const bookId = field(body.bookId);
+  if (!bookId) {
+    return Response.json({ error: "bookId is required" }, { status: 400 });
+  }
+
+  try {
+    const user = await routeUser(request);
+    if (user instanceof Response) return user;
+    const { catalog, progress, limits } = await getServices();
+
+    // After authentication and validation, and before the catalog and state
+    // reads below, which are all of this route's bucket work.
+    const limited = await enforceR2RateLimit(request, limits);
+    if (limited) return limited;
+
+    // Checked against the catalog rather than trusted, so the progress file
+    // cannot be grown a key at a time by anything that can post to this URL.
+    if (!(await catalog.find(bookId))) {
+      return Response.json({ error: "no such book" }, { status: 404 });
+    }
+
+    const saved = await progress.save(user.id, bookId, {
+      cfi: field(body.cfi),
+      href: field(body.href),
+      page: pageNumber(body.page),
+    });
+
+    return Response.json({ saved }, { status: saved ? 200 : 202 });
+  } catch (error) {
+    if (!isUnavailable(error)) throw error;
+
+    // The same answer as a library that cannot be written to, because to the
+    // reader it is the same situation: retain the in-session position and try
+    // again later. `saved: false` is what it already knows how to handle.
+    return Response.json(
+      { saved: false },
+      {
+        status: 503,
+        headers: { "retry-after": "5", "cache-control": "no-store" },
+      },
+    );
+  }
+}

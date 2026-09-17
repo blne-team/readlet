@@ -1,0 +1,59 @@
+{
+  "name": "@readlet/app",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "The readlet itself: a server-rendered library over object storage",
+  "author": "Murat Erkin Cicek",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blne-team/readlet.git",
+    "directory": "apps/readlet"
+  },
+  "homepage": "https://github.com/blne-team/readlet#readme",
+  "bugs": {
+    "url": "https://github.com/blne-team/readlet/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "assets": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/pdfjs-assets.ts",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "check-types": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./test/lib/alias.mjs --test \"test/**/*.test.ts\"",
+    "bundle": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && node ../../tools/check-worker-env.mjs && opennextjs-cloudflare deploy",
+    "deploy:built": "node ../../tools/check-worker-env.mjs && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && node ../../tools/check-worker-env.mjs && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "1.20.2",
+    "@readlet/core": "workspace:*",
+    "@readlet/provider-fs": "workspace:*",
+    "@readlet/provider-r2": "workspace:*",
+    "@readlet/sync": "workspace:*",
+    "epubjs": "^0.3.93",
+    "jose": "^6.2.12",
+    "lucide-react": "^1.33.0",
+    "next": "16.3.1",
+    "pdfjs-dist": "^6.2.108",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@readlet/fixtures": "workspace:*",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@xmldom/xmldom": "^0.8.14",
+    "tailwindcss": "^4",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.123.0"
+  }
+}

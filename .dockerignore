@@ -1,0 +1,32 @@
+# The build context is sent to the daemon in full, so keeping books out of it
+# is the difference between a megabyte and a few hundred.
+books/
+library/
+shelf-data/
+
+node_modules
+.pnpm-store
+**/node_modules
+.next
+**/.next
+.open-next
+**/.open-next
+.turbo
+**/.turbo
+packages/*/dist
+**/*.tsbuildinfo
+.env*
+**/.env*
+.dev.vars*
+**/.dev.vars*
+.wrangler-auth
+
+.git
+.github
+docs/
+.gitignore
+.nvmrc
+*.md
+!README.md
+# The image ships other people's code, so it ships their notices too.
+!THIRD-PARTY-NOTICES.md

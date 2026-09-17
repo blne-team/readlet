@@ -1,0 +1,78 @@
+{
+  "name": "@readlet/sync",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Builds a library from a folder of books and publishes it to object storage",
+  "author": "Murat Erkin Cicek",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blne-team/readlet.git",
+    "directory": "packages/sync"
+  },
+  "homepage": "https://github.com/blne-team/readlet#readme",
+  "bugs": {
+    "url": "https://github.com/blne-team/readlet/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "type": "module",
+  "bin": {
+    "readlet-sync": "./dist/sync.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "check-types": "tsc --build",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "sync": "node ./dist/sync.js"
+  },
+  "dependencies": {
+    "@readlet/core": "workspace:*",
+    "@readlet/provider-fs": "workspace:*",
+    "@readlet/provider-r2": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/sync.d.ts",
+      "default": "./dist/sync.js"
+    },
+    "./build": {
+      "types": "./dist/lib/build.d.ts",
+      "default": "./dist/lib/build.js"
+    },
+    "./bucket": {
+      "types": "./dist/lib/bucket.d.ts",
+      "default": "./dist/lib/bucket.js"
+    },
+    "./config": {
+      "types": "./dist/lib/config.d.ts",
+      "default": "./dist/lib/config.js"
+    },
+    "./epub": {
+      "types": "./dist/lib/epub.d.ts",
+      "default": "./dist/lib/epub.js"
+    },
+    "./images": {
+      "types": "./dist/lib/images.d.ts",
+      "default": "./dist/lib/images.js"
+    },
+    "./metadata": {
+      "types": "./dist/lib/metadata.d.ts",
+      "default": "./dist/lib/metadata.js"
+    },
+    "./pdf": {
+      "types": "./dist/lib/pdf.d.ts",
+      "default": "./dist/lib/pdf.js"
+    }
+  },
+  "devDependencies": {
+    "@readlet/fixtures": "workspace:*",
+    "@types/node": "^24",
+    "typescript": "^7.0.2"
+  }
+}

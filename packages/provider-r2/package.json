@@ -1,0 +1,54 @@
+{
+  "name": "@readlet/provider-r2",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Cloudflare R2 provider: a Worker binding to read, the wrangler CLI to publish",
+  "author": "Murat Erkin Cicek",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blne-team/readlet.git",
+    "directory": "packages/provider-r2"
+  },
+  "homepage": "https://github.com/blne-team/readlet#readme",
+  "bugs": {
+    "url": "https://github.com/blne-team/readlet/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "default": "./dist/worker.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "check-types": "tsc --build",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@readlet/core": "workspace:*",
+    "wrangler": "^4.123.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "typescript": "^7.0.2"
+  }
+}

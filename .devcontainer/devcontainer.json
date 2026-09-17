@@ -1,0 +1,16 @@
+{
+  "name": "readlet",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspaces/readlet",
+  "customizations": {
+    "vscode": {
+      "extensions": ["biomejs.biome", "ms-azuretools.vscode-docker"]
+    }
+  },
+  "updateRemoteUserUID": false,
+  "remoteUser": "node",
+  "forwardPorts": [5173],
+  "initializeCommand": "sh -c 'printf \"USER_UID=%s\\nUSER_GID=%s\\n\" \"$(id -u)\" \"$(id -g)\" > .devcontainer/.env'",
+  "mounts": ["source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind,ro"]
+}

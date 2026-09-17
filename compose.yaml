@@ -1,0 +1,35 @@
+# A shelf on a machine you own: one container serving a directory, and a
+# one-shot container that publishes books into it.
+#
+#   mkdir books && cp ~/some-book.epub books/
+#   docker compose run --rm sync --create
+#   docker compose up -d
+#
+# Configure apps/readlet/.env.local first. The Node server verifies Cloudflare
+# Access tokens forwarded by a protected endpoint; direct requests are denied.
+
+services:
+  app:
+    build: .
+    image: readlet
+    env_file: ./apps/readlet/.env.local
+    ports:
+      - "3000:3000"
+    volumes:
+      - library:/data
+    restart: unless-stopped
+
+  # Not started by `up`: it runs, publishes, and exits.
+  sync:
+    build: .
+    image: readlet
+    profiles: [sync]
+    # Arguments after `docker compose run --rm sync` are appended here, so
+    # `--create`, `--force` and `--dry-run` all work as they do locally.
+    entrypoint: ["node", "packages/sync/dist/sync.js"]
+    volumes:
+      - ./books:/books:ro
+      - library:/data
+
+volumes:
+  library:

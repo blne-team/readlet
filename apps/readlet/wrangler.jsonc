@@ -1,0 +1,67 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": "worker.ts",
+  "name": "readlet",
+  "compatibility_date": "2025-09-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "minify": true,
+  "keep_vars": true,
+  "vars": {
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "READLET_R2_BILLING_DAY": "1"
+  },
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "readlet"
+    }
+  ],
+  "observability": {
+    "enabled": false
+  },
+  "r2_buckets": [
+    {
+      "binding": "BOOKS",
+      "bucket_name": "books",
+      "jurisdiction": "eu"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "R2_USAGE",
+        "class_name": "R2UsageLedger"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["R2UsageLedger"]
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "R2_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    },
+    {
+      "name": "DOWNLOAD_RATE_LIMITER",
+      "namespace_id": "1002",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    }
+  ]
+}
