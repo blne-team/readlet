@@ -18,6 +18,7 @@ Both readers share the same controls.
 | **Text** | font size, family, weight, line and paragraph spacing, letter spacing and alignment (EPUB) |
 | **Page** | margins, maximum text width and automatic, one- or two-column layout (EPUB) |
 | **Contents** | jump to a chapter or a bookmark |
+| **Progress** | EPUB: book % and chapter % once measured; PDF: page of a total and a progress line |
 | **Page tint** | paper, sepia or night |
 | **Download** | the file itself |
 | **Bookmark** | save the current EPUB location or PDF page to your user |
@@ -110,6 +111,15 @@ progress bar to count against.
 Your current position stays live for the reading session and is saved to the
 active user after a short pause. Closing the tab flushes whatever is
 outstanding.
+
+An EPUB stores a CFI and spine href. The percentage in the reader chrome is
+display-only: it is derived from epub.js locations after they have been
+generated for the open book, and is not written back with the position. Until
+that measurement is ready, the chrome keeps the chapter label and does not
+show a fabricated 0%.
+
+A PDF stores a page number. Its progress line is the current page of the
+document total.
 
 Which file it is saved to depends on [which user](users.md) is reading. A
 read-only library does not persist position changes.

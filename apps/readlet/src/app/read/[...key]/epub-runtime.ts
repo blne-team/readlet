@@ -1,10 +1,16 @@
 "use client";
 
 import type { Book, NavItem, Rendition } from "epubjs";
-import { type RefObject, useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { epubInteractions } from "./epub-interactions";
 import type { EpubPreferences } from "./features/appearance/epub-preferences";
+import {
+  computeEpubProgress,
+  type EpubProgress,
+  resolveEpubChapter,
+} from "./features/progress/epub-progress";
 import type { Position } from "./features/progress/position";
+import { useEpubLocations } from "./features/progress/use-epub-locations";
 
 const PREFETCH_AHEAD = 2;
 const COMPACT_READER_WIDTH = 640;
@@ -61,11 +67,24 @@ export function useEpubRuntime({
 }) {
   const container = useRef<HTMLDivElement>(null);
   const rendition = useRef<Rendition | null>(null);
+  const [book, setBook] = useState<Book | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
-  const [label, setLabel] = useState("");
+  const [location, setLocation] = useState<{
+    cfi?: string;
+    href?: string;
+  } | null>(null);
   const [toc, setToc] = useState<{ item: NavItem; depth: number }[]>([]);
+  const { locations, spine } = useEpubLocations(book, opfUrl);
+  const progress = useMemo<EpubProgress>(() => {
+    const chapter = resolveEpubChapter(
+      location?.href,
+      toc.map(({ item }) => ({ href: item.href, label: item.label })),
+      spine,
+    );
+    return computeEpubProgress(location?.cfi, locations, chapter);
+  }, [location?.cfi, location?.href, locations, spine, toc]);
   const cssRef = useRef(preferenceCss);
   const selectedCallback = useRef(onSelected);
   useEffect(() => {
@@ -80,7 +99,7 @@ export function useEpubRuntime({
     if (!element || !restored) return;
     const host = element;
 
-    let book: Book | null = null;
+    let openedBook: Book | null = null;
     let cancelled = false;
     let observer: ResizeObserver | null = null;
 
@@ -142,6 +161,8 @@ export function useEpubRuntime({
     }
 
     setStatus("loading");
+    setBook(null);
+    setLocation(null);
 
     // epub.js touches window at import time, so it is loaded here rather than
     // at module scope, where it would break the server render.
@@ -152,7 +173,7 @@ export function useEpubRuntime({
         // Pointed at the .opf so epub.js fetches chapters one at a time instead
         // of pulling down the entire archive.
         const opened = ePub(opfUrl);
-        book = opened;
+        openedBook = opened;
 
         const initialWidth = host.getBoundingClientRect().width;
         const view = opened.renderTo(element, {
@@ -190,7 +211,10 @@ export function useEpubRuntime({
           (location: {
             start?: { cfi?: string; href?: string; index?: number };
           }) => {
-            setLabel(location.start?.href ?? "");
+            setLocation({
+              cfi: location.start?.cfi,
+              href: location.start?.href,
+            });
 
             if (location.start?.cfi) {
               record({ cfi: location.start.cfi, href: location.start.href });
@@ -227,9 +251,10 @@ export function useEpubRuntime({
 
         // `ready` resolves once the spine is parsed, which is what tells us
         // where the cover ends and the book begins.
-        return opened.ready.then(() =>
-          view.display(current()?.cfi ?? firstReadableHref(opened)),
-        );
+        return opened.ready.then(() => {
+          if (!cancelled) setBook(opened);
+          return view.display(current()?.cfi ?? firstReadableHref(opened));
+        });
       })
       .catch(() => {
         if (!cancelled) setStatus("error");
@@ -242,7 +267,8 @@ export function useEpubRuntime({
       window.removeEventListener("keydown", interaction.onKeyDown);
       observer?.disconnect();
       rendition.current = null;
-      book?.destroy();
+      setBook(null);
+      openedBook?.destroy();
     };
     // View and columns rebuild the rendition: epub.js reflows far more reliably
     // from a fresh render than from a structural change applied to a live one,
@@ -275,5 +301,5 @@ export function useEpubRuntime({
     return () => window.clearTimeout(anchor);
   }, [preferenceCss]);
 
-  return { container, rendition, status, label, toc };
+  return { container, rendition, status, progress, toc };
 }

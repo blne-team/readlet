@@ -5,10 +5,16 @@ import { Bookmark, ChevronLeft, ChevronRight, Highlighter } from "lucide-react";
 import { BUTTON_ROUND, SELECT } from "@/app/ui";
 import type { EpubPreferences } from "./features/appearance/epub-preferences";
 import { EpubSettings } from "./features/appearance/epub-settings";
+import {
+  EpubBookPercent,
+  EpubChapterPercent,
+} from "./features/progress/epub-progress-chrome";
 
 export function EpubControls({
   toc,
   label,
+  bookPercent,
+  chapterPercent,
   preferences,
   marksWritable,
   onTurn,
@@ -22,6 +28,8 @@ export function EpubControls({
 }: {
   toc: { item: NavItem; depth: number }[];
   label: string;
+  bookPercent: number | null;
+  chapterPercent: number | null;
   preferences: EpubPreferences;
   marksWritable: boolean;
   onTurn: (direction: "prev" | "next") => void;
@@ -51,27 +59,32 @@ export function EpubControls({
         <ChevronLeft aria-hidden="true" className="size-4" />
       </button>
       {toc.length > 0 ? (
-        <select
-          aria-label="Jump to chapter"
-          value=""
-          onChange={(event) => {
-            if (event.target.value) onGo(event.target.value);
-          }}
-          className={`${SELECT} min-w-0 flex-1 truncate`}
-        >
-          <option value="">{label || "Contents"}</option>
-          {toc.map(({ item, depth }) => (
-            <option
-              key={item.href}
-              value={item.href}
-            >{`${"  ".repeat(depth)}${item.label.trim()}`}</option>
-          ))}
-        </select>
+        <div className="min-w-0 flex-1">
+          <select
+            aria-label="Jump to chapter"
+            value=""
+            onChange={(event) => {
+              if (event.target.value) onGo(event.target.value);
+            }}
+            className={`${SELECT} w-full truncate`}
+          >
+            <option value="">{label || "Contents"}</option>
+            {toc.map(({ item, depth }) => (
+              <option
+                key={item.href}
+                value={item.href}
+              >{`${"  ".repeat(depth)}${item.label.trim()}`}</option>
+            ))}
+          </select>
+          <EpubChapterPercent percent={chapterPercent} />
+        </div>
       ) : (
-        <span className="min-w-0 flex-1 truncate text-sm text-secondary">
-          {label}
-        </span>
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-sm text-secondary">{label}</span>
+          <EpubChapterPercent percent={chapterPercent} />
+        </div>
       )}
+      <EpubBookPercent percent={bookPercent} />
       <EpubSettings
         preferences={preferences}
         open={settingsOpen}
