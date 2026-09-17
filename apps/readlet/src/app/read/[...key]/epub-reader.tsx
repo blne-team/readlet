@@ -34,11 +34,13 @@ const MOBILE_CHROME_TIMEOUT_MS = 3500;
 export function EpubReader({
   opfUrl,
   bookId,
+  title,
   saved,
   canSync,
 }: {
   opfUrl: string;
   bookId: string;
+  title: string;
   /** This user's position as the library has it, from any device. */
   saved: BookProgress | null;
   /** False against a library the app cannot write to. */
@@ -263,6 +265,8 @@ export function EpubReader({
             className="fixed inset-0 z-30 bg-black/20"
           />
           <ReaderMarksPanel
+            bookId={bookId}
+            title={title}
             marks={marks.marks.filter((mark) => mark.anchor.format === "epub")}
             error={marks.error}
             writable={marks.writable}

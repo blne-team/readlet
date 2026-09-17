@@ -28,8 +28,10 @@ The selection menu waits for your choice before saving anything. On a phone it
 opens as a bottom sheet, so its controls stay clear of the page-turn edges.
 Bookmarks and highlights belong to the active user and appear on another
 device when you open the same book there. The marks panel lets you jump back to
-an item, edit a highlight's note, or delete it. On a read-only library, marks
-can be viewed but cannot be changed.
+an item, edit a highlight's note, or delete it. It can also download the open
+book's bookmarks and highlights as Markdown or JSON — empty exports are honest
+empty sections or an empty JSON array, not a pretend success. On a read-only
+library, marks can be viewed but cannot be changed.
 
 **Keyboard**, in the page-at-a-time layouts:
 
