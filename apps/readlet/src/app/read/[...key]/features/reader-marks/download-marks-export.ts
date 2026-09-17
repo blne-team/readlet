@@ -12,7 +12,7 @@ export function downloadMarksExport(
 ): void {
   downloadTextFile({
     filename: marksExportFilename(input.bookId, format),
-    body:
+    contents:
       format === "json"
         ? serializeMarksJson(input)
         : serializeMarksMarkdown(input),

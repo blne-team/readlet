@@ -62,7 +62,9 @@ export async function POST(request: Request): Promise<Response> {
       if (!response.ok || !response.body)
         throw new Error(`Download failed (${response.status}).`);
       if (response.headers.get("content-type")?.startsWith("text/html"))
-        throw new Error("The URL points to a web page, not an EPUB or PDF file.");
+        throw new Error(
+          "The URL points to a web page, not an EPUB or PDF file.",
+        );
       const size = bookSize(response.headers.get("content-length"));
       if (!size)
         throw new Error(
