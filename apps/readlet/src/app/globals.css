@@ -66,7 +66,9 @@ body {
 }
 
 button:enabled,
-a[href] {
+a[href],
+select:enabled,
+input[type="range"]:enabled {
   cursor: pointer;
 }
 
@@ -86,10 +88,60 @@ a[href] {
   padding-top: max(0.375rem, env(safe-area-inset-top));
 }
 
+.reader-header-progress [role="progressbar"] {
+  height: 2px;
+  background: transparent;
+}
+
+.reader-header-progress [role="progressbar"] > div {
+  height: 2px;
+}
+
+.reader-navigation > button,
+.reader-utility > button,
+.reader-utility > div > button:first-child {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  background: transparent;
+}
+
+.reader-navigation > button:hover:not(:disabled) {
+  background: var(--background);
+}
+
+.reader-utility > button:hover:not(:disabled),
+.reader-utility > div > button:first-child:hover:not(:disabled) {
+  background: var(--fill);
+}
+
+.reader-utility > select {
+  min-height: 2.5rem;
+  background: transparent;
+}
+
 .reader-bottom-bar {
   padding-left: max(0.5rem, env(safe-area-inset-left));
   padding-right: max(0.5rem, env(safe-area-inset-right));
   padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+}
+
+.epub-reading-surface {
+  background: #fff;
+}
+
+.epub-reading-surface[data-theme="sepia"] {
+  background: #f4ecdc;
+}
+
+.epub-reading-surface[data-theme="night"] {
+  background: #111112;
+}
+
+@media (prefers-color-scheme: dark) {
+  .epub-reading-surface[data-theme="system"] {
+    background: #111112;
+  }
 }
 
 .reader-loading-bar {

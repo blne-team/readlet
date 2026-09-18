@@ -37,7 +37,11 @@
     "dev": {
       "dependsOn": ["^build", "assets"],
       "cache": false,
-      "env": ["READLET_DEV_AUTH_BYPASS"],
+      "env": [
+        "READLET_DEV_AUTH_BYPASS",
+        "READLET_PROVIDER",
+        "READLET_DIRECTORY"
+      ],
       "persistent": true
     },
     // Its own build too, not just its dependencies': the CLI is TypeScript and

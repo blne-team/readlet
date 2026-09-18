@@ -1,7 +1,7 @@
 "use client";
 
 import { RotateCw, Settings2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { BUTTON, BUTTON_ROUND, SELECT } from "@/app/ui";
 import {
   PDF_LAYOUTS,
@@ -11,6 +11,8 @@ import {
 } from "../../pdf-types";
 
 export function PdfSettings({
+  open,
+  onOpenChange,
   layout,
   tint,
   contrast,
@@ -21,6 +23,8 @@ export function PdfSettings({
   onPageGap,
   onRotate,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   layout: PdfLayout;
   tint: PdfTint;
   contrast: number;
@@ -31,16 +35,14 @@ export function PdfSettings({
   onPageGap: (pageGap: number) => void;
   onRotate: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-
   useEffect(() => {
     if (!open) return;
     const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") onOpenChange(false);
     };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
-  }, [open]);
+  }, [open, onOpenChange]);
 
   return (
     <div className="relative shrink-0">
@@ -48,7 +50,7 @@ export function PdfSettings({
         type="button"
         aria-label="PDF view settings"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => onOpenChange(!open)}
         className={BUTTON_ROUND}
       >
         <Settings2 aria-hidden="true" className="size-4" />
@@ -58,20 +60,20 @@ export function PdfSettings({
           <button
             type="button"
             aria-label="Close PDF view settings"
-            onClick={() => setOpen(false)}
+            onClick={() => onOpenChange(false)}
             className="fixed inset-0 z-20 bg-black/15 xl:bg-transparent"
           />
           <section
             role="dialog"
             aria-label="PDF view settings"
-            className="fixed inset-x-3 bottom-[calc(7.5rem+env(safe-area-inset-bottom))] z-30 max-h-[calc(100dvh-9rem)] overflow-y-auto rounded-2xl border border-separator bg-surface p-4 shadow-page xl:absolute xl:inset-x-auto xl:bottom-full xl:right-0 xl:mb-3 xl:w-72"
+            className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-separator bg-surface p-4 shadow-page xl:absolute xl:inset-x-auto xl:top-full xl:right-0 xl:bottom-auto xl:mt-3 xl:w-72"
           >
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-sm font-medium">PDF view</h2>
               <button
                 type="button"
                 aria-label="Close settings"
-                onClick={() => setOpen(false)}
+                onClick={() => onOpenChange(false)}
                 className="inline-flex size-11 items-center justify-center rounded-full text-secondary transition-colors hover:bg-fill hover:text-foreground xl:hidden"
               >
                 <X aria-hidden="true" className="size-4" />
@@ -131,7 +133,7 @@ export function PdfSettings({
               <button
                 type="button"
                 onClick={onRotate}
-                className={`${BUTTON} w-full gap-2 sm:hidden`}
+                className={`${BUTTON} w-full gap-2 xl:hidden`}
               >
                 <RotateCw aria-hidden="true" className="size-4" />
                 Rotate pages

@@ -1,15 +1,24 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Search as SearchIcon, X } from "lucide-react";
+import {
+  BookOpenText,
+  ChevronDown,
+  ChevronUp,
+  Highlighter,
+  Images,
+  Search as SearchIcon,
+  StickyNote,
+} from "lucide-react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { useEffect, useId, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useRef } from "react";
 import { BUTTON_ROUND, INPUT } from "@/app/ui";
 import type { Search } from "./features/search/pdf-search";
 import type { OutlineEntry } from "./pdf-document";
 import { PdfThumbnails } from "./pdf-thumbnails";
 import type { PdfFindSnapshot } from "./pdf-types";
+import { ReaderSidebarTabs } from "./reader-sidebar-tabs";
 
-export type Panel = "thumbnails" | "contents" | "search";
+export type Panel = "thumbnails" | "contents" | "marks" | "notes" | "search";
 
 export function PdfSidebar({
   panel,
@@ -22,19 +31,25 @@ export function PdfSidebar({
   onGo,
   onOpenOutline,
   onFindAgain,
-  onClose,
+  desktopOpen,
+  mobileOpen,
+  onSelect,
+  markContent,
 }: {
   panel: Panel;
   document: PDFDocumentProxy;
   labels: string[] | null;
-  outline: OutlineEntry[];
+  outline: OutlineEntry[] | null;
   page: number;
   search: Search;
   find: PdfFindSnapshot;
   onGo: (page: number) => void;
   onOpenOutline: (entry: OutlineEntry) => void;
   onFindAgain: (previous: boolean) => void;
-  onClose: () => void;
+  desktopOpen: boolean;
+  mobileOpen: boolean;
+  onSelect: (panel: Panel) => void;
+  markContent: (mode: "marks" | "notes") => ReactNode;
 }) {
   const field = useId();
   const searchField = useRef<HTMLInputElement>(null);
@@ -43,7 +58,7 @@ export function PdfSidebar({
   }, [panel]);
   const activeOutline = useMemo(() => {
     let found: number | null = null;
-    for (const entry of outline) {
+    for (const entry of outline ?? []) {
       if (entry.page !== null && entry.page <= page) found = entry.id;
     }
     return found;
@@ -51,26 +66,48 @@ export function PdfSidebar({
 
   const title = {
     thumbnails: "Page thumbnails",
-    contents: "Contents",
+    contents: outline === null || outline.length ? "Contents" : "Pages",
+    marks: "Marks",
+    notes: "Notes",
     search: "Search in this book",
   }[panel];
 
   return (
     <aside
       aria-label={title}
-      className="reader-side-panel fixed inset-y-0 left-0 z-40 flex w-80 max-w-[calc(100vw-2rem)] shrink-0 flex-col border-r border-separator bg-background shadow-page xl:static xl:w-72 xl:shadow-none"
+      className={`reader-side-panel fixed inset-y-0 left-0 z-40 w-[min(20rem,calc(100vw-3rem))] shrink-0 flex-col border-r border-separator bg-background shadow-page xl:relative xl:w-72 xl:shadow-none ${mobileOpen ? "flex" : "hidden"} ${desktopOpen ? "xl:flex" : "xl:hidden"}`}
     >
-      <header className="flex min-h-13 items-center justify-between gap-3 border-b border-separator px-3">
-        <h2 className="text-sm font-medium">{title}</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className={BUTTON_ROUND}
-        >
-          <X aria-hidden="true" className="size-4" />
-        </button>
-      </header>
+      <ReaderSidebarTabs
+        items={[
+          {
+            value: "contents",
+            label: "Contents",
+            icon: <BookOpenText className="size-4" />,
+          },
+          {
+            value: "thumbnails",
+            label: "Page thumbnails",
+            icon: <Images className="size-4" />,
+          },
+          {
+            value: "marks",
+            label: "Marks",
+            icon: <Highlighter className="size-4" />,
+          },
+          {
+            value: "notes",
+            label: "Notes",
+            icon: <StickyNote className="size-4" />,
+          },
+          {
+            value: "search",
+            label: "Search",
+            icon: <SearchIcon className="size-4" />,
+          },
+        ]}
+        panel={panel}
+        onSelect={onSelect}
+      />
 
       {panel === "search" && (
         <div className="border-b border-separator p-3">
@@ -133,8 +170,40 @@ export function PdfSidebar({
             onGo={onGo}
           />
         ) : panel === "contents" ? (
-          outline.length === 0 ? (
-            <Empty>This PDF does not contain a table of contents.</Empty>
+          outline === null ? (
+            <Empty>Loading contents…</Empty>
+          ) : outline.length === 0 ? (
+            <div className="space-y-4 px-4 py-4 text-[13px] text-secondary">
+              <p>This PDF has no table of contents.</p>
+              <form
+                className="flex items-end gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const input = event.currentTarget.elements.namedItem("page");
+                  if (input instanceof HTMLInputElement)
+                    onGo(Number(input.value));
+                }}
+              >
+                <label className="min-w-0 flex-1 space-y-1">
+                  <span className="block">Jump to page</span>
+                  <input
+                    name="page"
+                    type="number"
+                    min="1"
+                    max={document.numPages}
+                    required
+                    defaultValue={page}
+                    className={`${INPUT} w-full`}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="h-10 rounded-lg bg-fill px-3 text-foreground hover:bg-fill-hover"
+                >
+                  Go
+                </button>
+              </form>
+            </div>
           ) : (
             <ul className="py-2">
               {outline.map((entry) => (
@@ -164,6 +233,8 @@ export function PdfSidebar({
               ))}
             </ul>
           )
+        ) : panel === "marks" || panel === "notes" ? (
+          markContent(panel)
         ) : search.needle === "" ? (
           <Empty>Type at least two letters to search the whole book.</Empty>
         ) : search.failed ? (

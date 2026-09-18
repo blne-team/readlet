@@ -5,6 +5,7 @@ import type { Rendition } from "epubjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EpubControls } from "@/app/read/[...key]/epub-controls";
 import { useEpubRuntime } from "@/app/read/[...key]/epub-runtime";
+import { type EpubPanel, EpubSidebar } from "@/app/read/[...key]/epub-sidebar";
 import {
   type HighlightColor,
   highlightPresentation,
@@ -23,10 +24,15 @@ import {
 } from "@/app/read/[...key]/features/appearance/epub-preferences";
 import { EpubProgressBar } from "@/app/read/[...key]/features/progress/epub-progress-chrome";
 import { useReadingPosition } from "@/app/read/[...key]/features/progress/position";
-import { ReaderMarksPanel } from "@/app/read/[...key]/features/reader-marks/reader-marks-panel";
+import { ReaderMarksContent } from "@/app/read/[...key]/features/reader-marks/reader-marks-content";
 import { useReaderMarks } from "@/app/read/[...key]/features/reader-marks/use-reader-marks";
 import { ReaderLoading } from "@/app/read/[...key]/reader-loading";
-import { useReaderChrome } from "@/app/read/[...key]/reader-shell";
+import {
+  ReaderHeaderProgress,
+  useReaderChrome,
+} from "@/app/read/[...key]/reader-shell";
+import { ReaderSidebarToggle } from "@/app/read/[...key]/reader-sidebar-tabs";
+import { useReaderPanel } from "@/app/read/[...key]/use-reader-panel";
 import { MAX_MARK_TEXT_LENGTH, type ReaderMark } from "@/domain/reader-marks";
 
 const MOBILE_CHROME_TIMEOUT_MS = 3500;
@@ -48,7 +54,7 @@ export function EpubReader({
 }) {
   const chrome = useReaderChrome();
   const marks = useReaderMarks(bookId);
-  const [marksOpen, setMarksOpen] = useState(false);
+  const panel = useReaderPanel<EpubPanel>("contents");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [passage, setPassage] = useState<SelectedPassage | null>(null);
   const [compact, setCompact] = useState(false);
@@ -142,7 +148,7 @@ export function EpubReader({
       !compact ||
       status !== "ready" ||
       !chrome.visible ||
-      marksOpen ||
+      panel.mobileOpen ||
       settingsOpen ||
       passage
     ) {
@@ -160,7 +166,7 @@ export function EpubReader({
     chrome.visible,
     chrome.hide,
     chromeActivityAt,
-    marksOpen,
+    panel.mobileOpen,
     settingsOpen,
     passage,
   ]);
@@ -226,7 +232,7 @@ export function EpubReader({
   const goToMark = (mark: ReaderMark) => {
     if (mark.anchor.format === "epub")
       void rendition.current?.display(mark.anchor.cfi);
-    setMarksOpen(false);
+    panel.closeAfterGo();
   };
   const closePassage = () => {
     selectedWindow.current?.getSelection()?.removeAllRanges();
@@ -248,7 +254,7 @@ export function EpubReader({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 min-w-0 flex-1">
       {passage && (
         <SelectionMenu
           passage={passage}
@@ -256,71 +262,98 @@ export function EpubReader({
           onClose={closePassage}
         />
       )}
-      {marksOpen && (
-        <>
-          <button
-            type="button"
-            aria-label="Close marks"
-            onClick={() => setMarksOpen(false)}
-            className="fixed inset-0 z-30 bg-black/20"
-          />
-          <ReaderMarksPanel
+      {panel.mobileOpen && (
+        <button
+          type="button"
+          aria-label="Close reader panel"
+          onClick={panel.close}
+          className="fixed inset-0 z-30 bg-black/20 xl:hidden"
+        />
+      )}
+      <ReaderSidebarToggle
+        open={panel.visible}
+        desktopOpen={panel.desktopOpen}
+        mobileOpen={panel.mobileOpen}
+        onToggle={() => {
+          panel.toggle(panel.panel);
+          chrome.show();
+        }}
+      />
+      <EpubSidebar
+        toc={toc}
+        panel={panel.panel}
+        activeLabel={progress.chapterLabel}
+        desktopOpen={panel.desktopOpen}
+        mobileOpen={panel.mobileOpen}
+        onGo={(href) => {
+          void rendition.current?.display(href);
+          panel.closeAfterGo();
+        }}
+        onSelect={panel.open}
+        markContent={(mode) => (
+          <ReaderMarksContent
+            mode={mode}
             bookId={bookId}
             title={title}
             marks={marks.marks.filter((mark) => mark.anchor.format === "epub")}
             error={marks.error}
             writable={marks.writable}
+            onBookmark={addBookmark}
             onGo={goToMark}
-            onNote={(mark, note) => {
-              void marks.save({ ...mark, note });
-            }}
+            onNote={(mark, note) =>
+              marks.save({ ...mark, note, updatedAt: new Date().toISOString() })
+            }
             onRemove={(id) => {
               void marks.remove(id);
             }}
-            onClose={() => setMarksOpen(false)}
           />
-        </>
-      )}
-      <div className="relative flex-1">
+        )}
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        {chrome.visible && (
+          <ReaderHeaderProgress>
+            <EpubProgressBar percent={progress.bookPercent} />
+          </ReaderHeaderProgress>
+        )}
         <div
-          ref={container}
-          className="absolute mx-auto"
-          style={epubViewportStyle(preferences)}
-        />
-        {status !== "ready" && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            {status === "error" ? (
-              <p className="text-sm text-secondary">
-                This book could not be opened.
-              </p>
-            ) : (
-              <ReaderLoading label="Preparing first chapter…" />
-            )}
-          </div>
+          className="epub-reading-surface relative order-2 min-h-0 flex-1"
+          data-theme={preferences.theme}
+        >
+          <div
+            ref={container}
+            className="absolute mx-auto"
+            style={epubViewportStyle(preferences)}
+          />
+          {status !== "ready" && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              {status === "error" ? (
+                <p className="text-sm text-secondary">
+                  This book could not be opened.
+                </p>
+              ) : (
+                <ReaderLoading label="Preparing first chapter…" />
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="order-3 xl:hidden">
+          <EpubProgressBar percent={progress.bookPercent} />
+        </div>
+        {chrome.visible && (
+          <EpubControls
+            label={progress.chapterLabel}
+            bookPercent={progress.bookPercent}
+            chapterPercent={progress.chapterPercent}
+            preferences={preferences}
+            onTurn={turn}
+            onPreferences={changePreferences}
+            settingsOpen={settingsOpen}
+            onSettingsOpen={setSettingsOpen}
+            onActivity={keepChromeVisible}
+          />
         )}
       </div>
-
-      <EpubProgressBar percent={progress.bookPercent} />
-      {chrome.visible && (
-        <EpubControls
-          toc={toc}
-          label={progress.chapterLabel}
-          bookPercent={progress.bookPercent}
-          chapterPercent={progress.chapterPercent}
-          preferences={preferences}
-          marksWritable={marks.writable}
-          onTurn={turn}
-          onGo={(href) => {
-            void rendition.current?.display(href);
-          }}
-          onPreferences={changePreferences}
-          onBookmark={addBookmark}
-          onMarks={() => setMarksOpen(true)}
-          settingsOpen={settingsOpen}
-          onSettingsOpen={setSettingsOpen}
-          onActivity={keepChromeVisible}
-        />
-      )}
     </div>
   );
 }

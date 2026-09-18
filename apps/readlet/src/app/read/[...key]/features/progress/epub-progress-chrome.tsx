@@ -10,10 +10,10 @@ export function EpubProgressBar({ percent }: { percent: number | null }) {
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={percent}
-      className="h-px w-full bg-separator"
+      className="h-1 w-full bg-separator"
     >
       <div
-        className="h-px bg-accent transition-[width] duration-200"
+        className="h-full bg-accent transition-[width] duration-200"
         style={{ width: `${percent}%` }}
       />
     </div>

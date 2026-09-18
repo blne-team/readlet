@@ -20,6 +20,9 @@ function providerDefaults(): Record<string, string> {
   const found = findConfigSync(process.cwd());
   const storage = found?.config.storage ?? {};
   const directory = storage.directory;
+  const localFilesystem =
+    process.env.NODE_ENV === "development" &&
+    process.env.READLET_PROVIDER === "fs";
 
   return {
     READLET_PROVIDER_DEFAULT: String(storage.provider ?? "r2"),
@@ -27,7 +30,14 @@ function providerDefaults(): Record<string, string> {
       ? {
           READLET_DIRECTORY_DEFAULT: path.resolve(found.root, directory),
         }
-      : {}),
+      : localFilesystem
+        ? {
+            READLET_DIRECTORY_DEFAULT: path.resolve(
+              found?.root ?? process.cwd(),
+              "shelf-data",
+            ),
+          }
+        : {}),
   };
 }
 
@@ -40,7 +50,11 @@ const nextConfig: NextConfig = {
 // Makes the Cloudflare bindings (R2, etc.) available to `next dev`. Loading
 // the development proxy during a production build makes it inspect the
 // pre-OpenNext worker, before Readlet's Durable Object export is bundled.
-if (process.env.NODE_ENV === "development") {
+if (
+  process.env.NODE_ENV === "development" &&
+  (process.env.READLET_PROVIDER ?? nextConfig.env?.READLET_PROVIDER_DEFAULT) ===
+    "r2"
+) {
   initOpenNextCloudflareForDev();
 }
 

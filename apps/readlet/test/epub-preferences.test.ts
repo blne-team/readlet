@@ -10,7 +10,7 @@ test("continuous scroll is the default EPUB reading view", () => {
   assert.equal(DEFAULT_EPUB_PREFERENCES.view, "scroll");
 });
 
-test("the default EPUB theme preserves the publisher's family and weight", () => {
+test("the default EPUB settings preserve the publisher's family and weight", () => {
   const css = epubPreferenceCss(DEFAULT_EPUB_PREFERENCES);
 
   assert.match(css, /font-size: 100%/);
@@ -18,6 +18,24 @@ test("the default EPUB theme preserves the publisher's family and weight", () =>
   assert.doesNotMatch(css, /body, body \* \{ font-family/);
   assert.doesNotMatch(css, /body, p, li, blockquote, dd, dt \{ font-weight/);
   assert.doesNotMatch(css, /text-align/);
+});
+
+test("EPUB page themes keep prose and links readable across device colors", () => {
+  const system = epubPreferenceCss(DEFAULT_EPUB_PREFERENCES);
+  const sepia = epubPreferenceCss({
+    ...DEFAULT_EPUB_PREFERENCES,
+    theme: "sepia",
+  });
+  const night = epubPreferenceCss({
+    ...DEFAULT_EPUB_PREFERENCES,
+    theme: "night",
+  });
+
+  assert.match(system, /prefers-color-scheme: dark/);
+  assert.match(sepia, /background-color: #f4ecdc/);
+  assert.match(sepia, /body a \{ color: #765c39/);
+  assert.match(night, /color-scheme: dark/);
+  assert.match(night, /body a \{ color: #6ab5ff/);
 });
 
 test("chosen typography becomes explicit reader CSS", () => {

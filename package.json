@@ -33,7 +33,7 @@
   },
   "scripts": {
     "dev": "turbo run dev",
-    "dev:no-auth": "READLET_DEV_AUTH_BYPASS=1 turbo run dev",
+    "dev:no-auth": "turbo run build --filter=@readlet/sync --filter=@readlet/fixtures --output-logs=errors-only && node tools/seed-local-dev.mjs && READLET_DEV_AUTH_BYPASS=1 READLET_PROVIDER=fs turbo run dev",
     "build": "turbo run build",
     "check-types": "turbo run check-types",
     "bundle": "turbo run bundle",

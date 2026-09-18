@@ -101,6 +101,34 @@ test("the last chapter runs to the end of the location list", () => {
   );
 });
 
+test("the final visible page reaches 100% even when its start CFI is earlier", () => {
+  const lastChapter: EpubChapter = {
+    label: "Endnotes",
+    startCfi: "epubcfi(/6/12!/4)",
+    nextCfi: null,
+  };
+  const index = locations({
+    [LAST]: { index: 90, fraction: 0.9 },
+    "epubcfi(/6/12!/4)": { index: 80, fraction: 0.8 },
+  });
+  Object.assign(index, { length: 100 });
+
+  assert.equal(computeEpubProgress(LAST, index, lastChapter).bookPercent, 90);
+  assert.equal(
+    computeEpubProgress(LAST, index, lastChapter).chapterPercent,
+    50,
+  );
+  assert.deepEqual(computeEpubProgress(LAST, index, lastChapter, true), {
+    bookPercent: 100,
+    chapterPercent: 100,
+    chapterLabel: "Endnotes",
+  });
+  assert.equal(
+    computeEpubProgress(LAST, null, lastChapter, true).bookPercent,
+    null,
+  );
+});
+
 test("a missing CFI does not invent a percentage", () => {
   const index = locations({
     [MID]: { index: 40, fraction: 0.4 },

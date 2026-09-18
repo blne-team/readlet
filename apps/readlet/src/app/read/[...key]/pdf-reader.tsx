@@ -14,7 +14,7 @@ import {
   writePdfPreference,
 } from "./features/appearance/pdf-preferences";
 import { useReadingPosition } from "./features/progress/position";
-import { ReaderMarksPanel } from "./features/reader-marks/reader-marks-panel";
+import { ReaderMarksContent } from "./features/reader-marks/reader-marks-content";
 import { useReaderMarks } from "./features/reader-marks/use-reader-marks";
 import { usePdfSearch } from "./features/search/pdf-search";
 import { PdfControls } from "./pdf-controls";
@@ -31,7 +31,9 @@ import {
   type PdfZoom,
 } from "./pdf-types";
 import { ReaderLoading } from "./reader-loading";
-import { useReaderChrome } from "./reader-shell";
+import { ReaderHeaderProgress, useReaderChrome } from "./reader-shell";
+import { ReaderSidebarToggle } from "./reader-sidebar-tabs";
+import { useReaderPanel } from "./use-reader-panel";
 
 const FULLSCREEN_CHROME_TIMEOUT_MS = 3500;
 const MIN_SPREAD_WIDTH = 800;
@@ -51,20 +53,23 @@ export function PdfReader({
 }) {
   const chrome = useReaderChrome();
   const marks = useReaderMarks(bookId);
-  const [marksOpen, setMarksOpen] = useState(false);
+  const panel = useReaderPanel<Panel>("contents");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [compact, setCompact] = useState(false);
+  const [chromeActivityAt, setChromeActivityAt] = useState<number | null>(null);
   const [passage, setPassage] = useState<SelectedPassage | null>(null);
   const root = useRef<HTMLDivElement>(null);
-  const surfaceFrame = useRef<HTMLDivElement>(null);
+  const surfaceArea = useRef<HTMLDivElement>(null);
   const [engine, setEngine] = useState<PdfEngine | null>(null);
   const [snapshot, setSnapshot] = useState<PdfSnapshot | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading",
   );
   const [preferences, setPreferences] = useState<PdfPreferences | null>(null);
-  const [outline, setOutline] = useState<OutlineEntry[]>([]);
-  const [panel, setPanel] = useState<Panel | null>(null);
+  const [outline, setOutline] = useState<OutlineEntry[] | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [surfaceWidth, setSurfaceWidth] = useState(0);
+  const [surfaceHeight, setSurfaceHeight] = useState(0);
 
   const position = useReadingPosition({
     bookId,
@@ -75,14 +80,31 @@ export function PdfReader({
   const currentPage = snapshot?.page;
 
   useEffect(() => setPreferences(readPdfPreferences()), []);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 639px)");
+    const update = () => setCompact(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  const keepChromeVisible = useCallback(
+    () => setChromeActivityAt(Date.now()),
+    [],
+  );
+  const toggleChrome = useCallback(() => {
+    keepChromeVisible();
+    chrome.toggle();
+  }, [chrome.toggle, keepChromeVisible]);
 
   const preferencesReady = preferences !== null;
   useEffect(() => {
-    if (!preferencesReady || !surfaceFrame.current) return;
-    const observer = new ResizeObserver(([entry]) =>
-      setSurfaceWidth(entry.contentRect.width),
-    );
-    observer.observe(surfaceFrame.current);
+    if (!preferencesReady || !surfaceArea.current) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setSurfaceWidth(entry.contentRect.width);
+      setSurfaceHeight(entry.contentRect.height);
+    });
+    observer.observe(surfaceArea.current);
     return () => observer.disconnect();
   }, [preferencesReady]);
 
@@ -97,8 +119,21 @@ export function PdfReader({
   }, [engine, effectiveLayout]);
 
   useEffect(() => {
+    // A docked sidebar changes the space available to a fitted PDF page.
+    if (
+      engine &&
+      surfaceWidth > 0 &&
+      surfaceHeight > 0 &&
+      typeof preferences?.zoom === "string"
+    ) {
+      engine.setZoom(preferences.zoom);
+    }
+  }, [engine, surfaceWidth, surfaceHeight, preferences?.zoom]);
+
+  useEffect(() => {
     if (!pdfDocument) return;
     let active = true;
+    setOutline(null);
     void readOutline(pdfDocument).then((entries) => {
       if (active) setOutline(entries);
     });
@@ -136,10 +171,32 @@ export function PdfReader({
   }, []);
 
   useEffect(() => {
-    if (!fullscreen || !chrome.visible || panel) return;
-    const timer = window.setTimeout(chrome.hide, FULLSCREEN_CHROME_TIMEOUT_MS);
+    if (
+      (!compact && !fullscreen) ||
+      status !== "ready" ||
+      !chrome.visible ||
+      panel.mobileOpen ||
+      settingsOpen ||
+      passage
+    )
+      return;
+    const quietFor = chromeActivityAt ? Date.now() - chromeActivityAt : 0;
+    const timer = window.setTimeout(
+      chrome.hide,
+      Math.max(FULLSCREEN_CHROME_TIMEOUT_MS - quietFor, 0),
+    );
     return () => window.clearTimeout(timer);
-  }, [fullscreen, chrome.visible, chrome.hide, panel]);
+  }, [
+    compact,
+    fullscreen,
+    status,
+    chrome.visible,
+    chrome.hide,
+    panel.mobileOpen,
+    settingsOpen,
+    passage,
+    chromeActivityAt,
+  ]);
 
   const onEngine = useCallback((value: PdfEngine | null) => {
     setEngine(value);
@@ -154,9 +211,9 @@ export function PdfReader({
     [],
   );
   const openSearch = useCallback(() => {
-    setPanel("search");
+    panel.open("search");
     chrome.show();
-  }, [chrome.show]);
+  }, [chrome.show, panel.open]);
 
   if (!preferences) {
     return <Loading />;
@@ -195,18 +252,18 @@ export function PdfReader({
     writePdfPreference("pageGap", pageGap);
     setPreferences((current) => (current ? { ...current, pageGap } : current));
   };
-  const togglePanel = (next: Panel) => {
-    setPanel((current) => (current === next ? null : next));
+  const togglePanel = () => {
+    panel.toggle(panel.panel);
     chrome.show();
   };
   const goFromPanel = (target: number) => {
     engine?.goToPage(target);
-    if (window.innerWidth < 1280) setPanel(null);
+    panel.closeAfterGo();
   };
   const openOutlineFromPanel = (entry: OutlineEntry) => {
     if (entry.destination) engine?.goToDestination(entry.destination);
     else if (entry.page) engine?.goToPage(entry.page);
-    if (window.innerWidth < 1280) setPanel(null);
+    panel.closeAfterGo();
   };
   const toggleFullscreen = () => {
     if (document.fullscreenElement === root.current) {
@@ -237,11 +294,14 @@ export function PdfReader({
   };
   const goToMark = (mark: ReaderMark) => {
     if (mark.anchor.format === "pdf") engine?.goToPage(mark.anchor.page);
-    setMarksOpen(false);
+    panel.closeAfterGo();
   };
 
   return (
-    <div ref={root} className="relative flex min-h-0 flex-1 bg-background">
+    <div
+      ref={root}
+      className="relative flex min-h-0 min-w-0 flex-1 bg-background"
+    >
       {passage && (
         <SelectionMenu
           passage={passage}
@@ -249,41 +309,24 @@ export function PdfReader({
           onClose={closePassage}
         />
       )}
-      {marksOpen && (
+      {snapshot && (
         <>
-          <button
-            type="button"
-            aria-label="Close marks"
-            onClick={() => setMarksOpen(false)}
-            className="fixed inset-0 z-30 bg-black/20"
-          />
-          <ReaderMarksPanel
-            bookId={bookId}
-            title={title}
-            marks={marks.marks.filter((mark) => mark.anchor.format === "pdf")}
-            error={marks.error}
-            writable={marks.writable}
-            onGo={goToMark}
-            onNote={(mark, note) => {
-              void marks.save({ ...mark, note });
-            }}
-            onRemove={(id) => {
-              void marks.remove(id);
-            }}
-            onClose={() => setMarksOpen(false)}
-          />
-        </>
-      )}
-      {panel && snapshot && (
-        <>
-          <button
-            type="button"
-            aria-label="Close side panel"
-            onClick={() => setPanel(null)}
-            className="fixed inset-0 z-30 bg-black/20 xl:hidden"
+          {panel.mobileOpen && (
+            <button
+              type="button"
+              aria-label="Close side panel"
+              onClick={panel.close}
+              className="fixed inset-0 z-30 bg-black/20 xl:hidden"
+            />
+          )}
+          <ReaderSidebarToggle
+            open={panel.visible}
+            desktopOpen={panel.desktopOpen}
+            mobileOpen={panel.mobileOpen}
+            onToggle={togglePanel}
           />
           <PdfSidebar
-            panel={panel}
+            panel={panel.panel}
             document={snapshot.document}
             labels={snapshot.pageLabels}
             outline={outline}
@@ -293,13 +336,73 @@ export function PdfReader({
             onGo={goFromPanel}
             onOpenOutline={openOutlineFromPanel}
             onFindAgain={(previous) => engine?.findAgain(previous)}
-            onClose={() => setPanel(null)}
+            onSelect={panel.open}
+            markContent={(mode) => (
+              <ReaderMarksContent
+                mode={mode}
+                bookId={bookId}
+                title={title}
+                marks={marks.marks.filter(
+                  (mark) => mark.anchor.format === "pdf",
+                )}
+                error={marks.error}
+                writable={marks.writable}
+                onBookmark={() => {
+                  if (marks.writable)
+                    void marks.createBookmark({ format: "pdf", page });
+                }}
+                onGo={goToMark}
+                onNote={(mark, note) =>
+                  marks.save({
+                    ...mark,
+                    note,
+                    updatedAt: new Date().toISOString(),
+                  })
+                }
+                onRemove={(id) => {
+                  void marks.remove(id);
+                }}
+              />
+            )}
+            desktopOpen={panel.desktopOpen}
+            mobileOpen={panel.mobileOpen}
           />
         </>
       )}
 
-      <div ref={surfaceFrame} className="flex min-w-0 flex-1 flex-col">
-        <div className="relative flex min-h-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
+        {chrome.visible && (
+          <ReaderHeaderProgress>
+            <PdfProgress page={page} pages={pages} />
+          </ReaderHeaderProgress>
+        )}
+        {chrome.visible && (
+          <PdfControls
+            page={page}
+            pageLabel={snapshot?.pageLabel ?? null}
+            pages={pages}
+            layout={preferences.layout}
+            effectiveLayout={effectiveLayout}
+            zoom={preferences.zoom}
+            tint={preferences.tint}
+            contrast={preferences.contrast}
+            pageGap={preferences.pageGap}
+            fullscreen={fullscreen}
+            onTurn={(direction) => engine?.turn(direction)}
+            onGo={(target) => engine?.goToPage(target)}
+            onLayout={changeLayout}
+            onZoom={changeZoom}
+            onTint={changeTint}
+            onContrast={changeContrast}
+            onPageGap={changePageGap}
+            onRotate={() => engine?.rotate()}
+            onFullscreen={toggleFullscreen}
+            settingsOpen={settingsOpen}
+            onSettingsOpen={setSettingsOpen}
+            onActivity={keepChromeVisible}
+          />
+        )}
+        <div ref={surfaceArea} className="relative order-2 flex min-h-0 flex-1">
           <PdfSurface
             url={url}
             initialPage={initialPage}
@@ -311,7 +414,7 @@ export function PdfReader({
             onEngine={onEngine}
             onSnapshot={onSnapshot}
             onStatus={onStatus}
-            onToggleChrome={chrome.toggle}
+            onToggleChrome={toggleChrome}
             onOpenSearch={openSearch}
             onSelectText={selectText}
             selectionOpen={passage !== null}
@@ -330,46 +433,9 @@ export function PdfReader({
           )}
         </div>
 
-        <div className="h-px w-full bg-separator">
-          <div
-            className="h-px bg-accent transition-[width] duration-200"
-            style={{ width: pages ? `${(page / pages) * 100}%` : 0 }}
-          />
+        <div className="order-3 xl:hidden">
+          <PdfProgress page={page} pages={pages} />
         </div>
-
-        {chrome.visible && (
-          <PdfControls
-            panel={panel}
-            page={page}
-            pageLabel={snapshot?.pageLabel ?? null}
-            pages={pages}
-            scale={snapshot?.scale ?? 1}
-            layout={preferences.layout}
-            effectiveLayout={effectiveLayout}
-            zoom={preferences.zoom}
-            tint={preferences.tint}
-            contrast={preferences.contrast}
-            pageGap={preferences.pageGap}
-            fullscreen={fullscreen}
-            onPanel={togglePanel}
-            onTurn={(direction) => engine?.turn(direction)}
-            onGo={(target) => engine?.goToPage(target)}
-            onLayout={changeLayout}
-            onZoom={changeZoom}
-            onTint={changeTint}
-            onContrast={changeContrast}
-            onPageGap={changePageGap}
-            onRotate={() => engine?.rotate()}
-            onFullscreen={toggleFullscreen}
-            onBookmark={() => {
-              if (marks.writable)
-                void marks.createBookmark({ format: "pdf", page });
-            }}
-            onMarks={() => setMarksOpen((current) => !current)}
-            marksOpen={marksOpen}
-            marksWritable={marks.writable}
-          />
-        )}
       </div>
     </div>
   );
@@ -379,6 +445,24 @@ function Loading() {
   return (
     <div className="grid min-h-0 flex-1 place-items-center bg-fill">
       <ReaderLoading label="Preparing first page…" />
+    </div>
+  );
+}
+
+function PdfProgress({ page, pages }: { page: number; pages: number }) {
+  return (
+    <div
+      role="progressbar"
+      aria-label="Book progress"
+      aria-valuemin={0}
+      aria-valuemax={pages || undefined}
+      aria-valuenow={pages ? page : undefined}
+      className="h-1 w-full bg-separator"
+    >
+      <div
+        className="h-full bg-accent transition-[width] duration-200"
+        style={{ width: pages ? `${(page / pages) * 100}%` : 0 }}
+      />
     </div>
   );
 }

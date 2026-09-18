@@ -70,6 +70,7 @@ export function computeEpubProgress(
   currentCfi: string | undefined,
   locations: EpubLocations | null,
   chapter: EpubChapter | null,
+  atEnd = false,
 ): EpubProgress {
   const chapterLabel = chapter?.label ?? "";
   if (!locations || locations.length < 2) {
@@ -77,8 +78,8 @@ export function computeEpubProgress(
   }
 
   return {
-    bookPercent: bookPercent(currentCfi, locations),
-    chapterPercent: chapterPercent(currentCfi, locations, chapter),
+    bookPercent: bookPercent(currentCfi, locations, atEnd),
+    chapterPercent: chapterPercent(currentCfi, locations, chapter, atEnd),
     chapterLabel,
   };
 }
@@ -86,8 +87,10 @@ export function computeEpubProgress(
 function bookPercent(
   currentCfi: string | undefined,
   locations: EpubLocations,
+  atEnd: boolean,
 ): number | null {
   if (!currentCfi) return null;
+  if (atEnd) return 100;
   const fraction = locations.percentageFromCfi(currentCfi);
   if (fraction === null || !Number.isFinite(fraction)) return null;
   return asDisplayPercent(fraction);
@@ -97,8 +100,10 @@ function chapterPercent(
   currentCfi: string | undefined,
   locations: EpubLocations,
   chapter: EpubChapter | null,
+  atEnd: boolean,
 ): number | null {
   if (!currentCfi || !chapter?.startCfi) return null;
+  if (atEnd) return 100;
   const current = locations.locationFromCfi(currentCfi);
   const start = locations.locationFromCfi(chapter.startCfi);
   if (current < 0 || start < 0) return null;

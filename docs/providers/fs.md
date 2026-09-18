@@ -33,7 +33,12 @@ request in a built deployment. There is no local-login mode.
 For a temporary local development session, run `pnpm dev:no-auth` from the
 repository root. It supplies a synthetic member only under `next dev`; it does
 not alter the user directory and has no effect on a production server or
-Worker. Keep Cloudflare Access in front of every reachable deployment.
+Worker. The command selects the filesystem provider and uses `shelf-data/` if
+the config does not specify a filesystem directory. It does not start the
+Cloudflare development proxy or its unsupported internal Durable Object.
+An empty local library is filled with sample EPUB and PDF books on first run;
+an existing library is left alone.
+Keep Cloudflare Access in front of every reachable deployment.
 
 | key | what it does |
 | --- | --- |

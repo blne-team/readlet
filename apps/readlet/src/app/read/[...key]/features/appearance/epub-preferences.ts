@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { readStored, writeStored } from "@/lib/local";
 
 export type ReadingView = "paged" | "scroll";
+export type EpubTheme = "system" | "paper" | "sepia" | "night";
 export type ColumnCount = "auto" | "one" | "two";
 export type FontFamily = "publisher" | "serif" | "sans";
 export type FontWeight = "publisher" | "400" | "500" | "600" | "700";
@@ -9,6 +10,7 @@ export type TextAlignment = "publisher" | "start" | "justify";
 
 export type EpubPreferences = {
   view: ReadingView;
+  theme: EpubTheme;
   columns: ColumnCount;
   fontSize: number;
   fontFamily: FontFamily;
@@ -23,6 +25,7 @@ export type EpubPreferences = {
 
 export const DEFAULT_EPUB_PREFERENCES: EpubPreferences = {
   view: "scroll",
+  theme: "system",
   columns: "auto",
   fontSize: 100,
   fontFamily: "publisher",
@@ -66,6 +69,21 @@ export function writeEpubPreferences(preferences: EpubPreferences): void {
  * chooses a different family for the book.
  */
 export function epubPreferenceCss(preferences: EpubPreferences): string {
+  const theme = (paper: string, ink: string, link: string, scheme: string) => `
+html { color-scheme: ${scheme}; }
+html, body { background-color: ${paper} !important; color: ${ink} !important; }
+body :is(p, li, blockquote, dd, dt, h1, h2, h3, h4, h5, h6) { color: ${ink} !important; }
+body a { color: ${link} !important; }`;
+  const paperTheme = theme("#ffffff", "#1d1d1f", "#0071e3", "light");
+  const nightTheme = theme("#111112", "#f5f5f7", "#6ab5ff", "dark");
+  const themeCss =
+    preferences.theme === "system"
+      ? `${paperTheme}\n@media (prefers-color-scheme: dark) { ${nightTheme} }`
+      : preferences.theme === "sepia"
+        ? theme("#f4ecdc", "#43382a", "#765c39", "light")
+        : preferences.theme === "night"
+          ? nightTheme
+          : paperTheme;
   const family =
     preferences.fontFamily === "publisher"
       ? ""
@@ -96,7 +114,7 @@ p, li, blockquote, dd, dt {
   letter-spacing: inherit !important;
 }
 p { margin-block-end: ${preferences.paragraphSpacing}em !important; }
-${family}${weight}${alignment}
+${family}${weight}${alignment}${themeCss}
 `;
 }
 

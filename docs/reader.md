@@ -1,7 +1,5 @@
 # Reading in the browser
 
-![The reader: a two-page spread of a chapter, with a contents dropdown and a layout selector](reader.webp)
-
 Every book on your shelf has a **Read** link. EPUBs and PDFs each get a reader
 built for them; anything else opens in your browser's own viewer.
 
@@ -17,9 +15,9 @@ Both readers share the same controls.
 | **View** | paged or continuous scroll |
 | **Text** | font size, family, weight, line and paragraph spacing, letter spacing and alignment (EPUB) |
 | **Page** | margins, maximum text width and automatic, one- or two-column layout (EPUB) |
-| **Contents** | jump to a chapter or a bookmark |
+| **Contents** | open the left panel on a wide screen or a drawer on a phone; jump to a chapter or PDF section |
 | **Progress** | EPUB: book % and chapter % once measured; PDF: page of a total and a progress line |
-| **Page tint** | paper, sepia or night |
+| **Page theme** | EPUB: match the device, paper, sepia or night; PDF: paper, sepia or night tint |
 | **Download** | the file itself |
 | **Bookmark** | save the current EPUB location or PDF page to your user |
 | **Highlights** | select text, choose a color, then highlight it or add an optional note |
@@ -27,7 +25,7 @@ Both readers share the same controls.
 The selection menu waits for your choice before saving anything. On a phone it
 opens as a bottom sheet, so its controls stay clear of the page-turn edges.
 Bookmarks and highlights belong to the active user and appear on another
-device when you open the same book there. The marks panel lets you jump back to
+device when you open the same book there. The Marks tab lets you jump back to
 an item, edit a highlight's note, or delete it. It can also download the open
 book's bookmarks and highlights as Markdown or JSON — empty exports are honest
 empty sections or an empty JSON array, not a pretend success. On a read-only
@@ -46,9 +44,12 @@ swipe to turn.
 
 On a narrow screen, a two-page preference becomes one page until there is room
 again. The preference itself is left alone, so rotating the device or returning
-to a larger screen restores it. In the EPUB reader the header and controls hide
-after a short pause; tap the middle to bring them back. Tap the left or right
-edge to turn a paged book.
+to a larger screen restores it. On a wide screen, the reader controls share a
+single header row and the left panel holds Contents, Marks, and Notes. The PDF
+panel also holds page thumbnails and Search. The panel can be closed to give the
+book more room. On a phone, the controls appear at the bottom when you tap the
+middle of the book and hide again after a short pause. The panel opens as a
+drawer. Tap the left or right edge to turn a paged book.
 
 ## PDFs
 
@@ -66,8 +67,8 @@ PDF highlights follow the selected text's page rectangles when zoom changes.
 An EPUB highlight uses a text CFI, so it follows reflow when typography or
 the viewport changes.
 
-**Contents** comes from the document's own outline, in a drawer rather than a
-dropdown, because technical books run to hundreds of bookmarks.
+**Contents** comes from the document's own outline. A PDF without an outline
+offers a page jump in the same panel, while page thumbnails remain available.
 
 **Page tint on a PDF is a filter over the page**, not a restyling. A PDF page is
 a picture, background and all, so tinting can't work the way it does for an
@@ -82,8 +83,9 @@ right edges turn pages, horizontal swipes work on touchscreens, and a two-finger
 gesture zooms around its midpoint. Pages can also be rotated clockwise.
 
 Display settings group one-page, two-page and continuous layouts with paper,
-sepia and night tints, contrast, and page spacing. Fullscreen reading hides the
-controls after a short pause; clicking the middle of the page brings them back.
+sepia and night tints, contrast, and page spacing. On phones and in fullscreen,
+the controls hide after a short pause; clicking the middle of the page brings
+them back.
 
 ## Opening a big book is cheap
 

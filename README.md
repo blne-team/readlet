@@ -75,17 +75,20 @@ time on two devices for one user use the last saved value.
 ## Develop locally
 
 The repository requires Node.js 24 or newer and pnpm 10.34.5. The checked-in
-`readlet.config.json` targets R2. For filesystem development, set its
-`storage` field to `{ "provider": "fs", "directory": "shelf-data" }`, then run:
+`readlet.config.json` targets R2. To run locally without Cloudflare bindings,
+use the filesystem development command:
 
 ```bash
 pnpm install
 pnpm dev:no-auth
 ```
 
-This development command supplies a synthetic reader, so it lets you inspect
-the shelf and reader without Cloudflare Access. It cannot open manager pages or
-import books. Production requests always require a verified Access identity.
+This command uses `shelf-data/` by default, or the directory in a filesystem
+`readlet.config.json`. On first run, it fills an empty directory with sample
+EPUB and PDF books. Later runs leave an existing library alone. It supplies a
+synthetic reader, so it lets you inspect the shelf and reader without Cloudflare
+Access. It cannot open manager pages or import books. Production requests always
+require a verified Access identity.
 For commands and configuration details, see [the provider documentation](docs/providers/README.md)
 and [the architecture guide](docs/architecture.md).
 

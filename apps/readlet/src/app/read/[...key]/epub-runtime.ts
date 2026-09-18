@@ -74,6 +74,7 @@ export function useEpubRuntime({
   const [location, setLocation] = useState<{
     cfi?: string;
     href?: string;
+    atEnd?: boolean;
   } | null>(null);
   const [toc, setToc] = useState<{ item: NavItem; depth: number }[]>([]);
   const { locations, spine } = useEpubLocations(book, opfUrl);
@@ -83,8 +84,13 @@ export function useEpubRuntime({
       toc.map(({ item }) => ({ href: item.href, label: item.label })),
       spine,
     );
-    return computeEpubProgress(location?.cfi, locations, chapter);
-  }, [location?.cfi, location?.href, locations, spine, toc]);
+    return computeEpubProgress(
+      location?.cfi,
+      locations,
+      chapter,
+      location?.atEnd === true,
+    );
+  }, [location?.cfi, location?.href, location?.atEnd, locations, spine, toc]);
   const cssRef = useRef(preferenceCss);
   const selectedCallback = useRef(onSelected);
   useEffect(() => {
@@ -210,10 +216,12 @@ export function useEpubRuntime({
           "relocated",
           (location: {
             start?: { cfi?: string; href?: string; index?: number };
+            atEnd?: boolean;
           }) => {
             setLocation({
               cfi: location.start?.cfi,
               href: location.start?.href,
+              atEnd: location.atEnd,
             });
 
             if (location.start?.cfi) {
@@ -251,10 +259,13 @@ export function useEpubRuntime({
 
         // `ready` resolves once the spine is parsed, which is what tells us
         // where the cover ends and the book begins.
-        return opened.ready.then(() => {
-          if (!cancelled) setBook(opened);
-          return view.display(current()?.cfi ?? firstReadableHref(opened));
-        });
+        return opened.ready
+          .then(() => view.display(current()?.cfi ?? firstReadableHref(opened)))
+          .then(() => {
+            // Measuring every chapter for percentages is background work. Let
+            // the saved chapter become visible before starting those reads.
+            if (!cancelled) setBook(opened);
+          });
       })
       .catch(() => {
         if (!cancelled) setStatus("error");

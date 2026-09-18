@@ -3,6 +3,7 @@ import { type ReactNode, useEffect } from "react";
 import {
   DEFAULT_EPUB_PREFERENCES,
   type EpubPreferences,
+  type EpubTheme,
   type FontFamily,
   type FontWeight,
   type TextAlignment,
@@ -52,12 +53,12 @@ export function EpubSettings({
             type="button"
             aria-label="Close text and page settings"
             onClick={() => onOpenChange(false)}
-            className="fixed inset-0 z-20 bg-black/15 sm:bg-transparent"
+            className="fixed inset-0 z-20 bg-black/15 xl:bg-transparent"
           />
           <section
             role="dialog"
             aria-label="Text and page settings"
-            className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-separator bg-surface p-5 shadow-page sm:absolute sm:inset-x-auto sm:bottom-full sm:right-0 sm:mb-3 sm:w-88 sm:max-w-[calc(100vw-2rem)]"
+            className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-separator bg-surface p-5 shadow-page xl:absolute xl:inset-x-auto xl:top-full xl:right-0 xl:bottom-auto xl:mt-3 xl:w-88 xl:max-w-[calc(100vw-2rem)]"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-semibold">Reading settings</h2>
@@ -65,7 +66,7 @@ export function EpubSettings({
                 type="button"
                 aria-label="Close settings"
                 onClick={() => onOpenChange(false)}
-                className="inline-flex size-11 items-center justify-center rounded-full text-secondary transition-colors hover:bg-fill hover:text-foreground sm:hidden"
+                className="inline-flex size-11 items-center justify-center rounded-full text-secondary transition-colors hover:bg-fill hover:text-foreground xl:hidden"
               >
                 <X aria-hidden="true" className="size-4" />
               </button>
@@ -172,6 +173,17 @@ export function EpubSettings({
             </SettingsGroup>
 
             <SettingsGroup title="Page">
+              <SelectSetting
+                label="Page theme"
+                value={preferences.theme}
+                onChange={(value) => update("theme", value as EpubTheme)}
+                options={[
+                  ["system", "Match device"],
+                  ["paper", "Paper"],
+                  ["sepia", "Sepia"],
+                  ["night", "Night"],
+                ]}
+              />
               <SelectSetting
                 label="View"
                 value={preferences.view}
