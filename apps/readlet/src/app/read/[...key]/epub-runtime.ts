@@ -1,6 +1,6 @@
 "use client";
 
-import type { Book, NavItem, Rendition } from "epubjs";
+import type { Book, Contents, NavItem, Rendition } from "epubjs";
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { epubInteractions } from "./epub-interactions";
 import type { EpubPreferences } from "./features/appearance/epub-preferences";
@@ -202,8 +202,12 @@ export function useEpubRuntime({
           // Book markup is untrusted: no scripts inside the iframe.
           allowScriptedContent: false,
         });
-        view.themes.registerCss("readlet-preferences", cssRef.current);
-        view.themes.select("readlet-preferences");
+        // EPUB.js does not inject serialized themes into chapters that its
+        // continuous manager creates later. Apply the current CSS to every
+        // chapter as it enters the rendition instead.
+        view.hooks.content.register((contents: Contents) => {
+          contents.addStylesheetCss(cssRef.current, "readlet-preferences");
+        });
         rendition.current = view;
 
         view.on("selected", (cfi: string, contents: { window?: Window }) =>
@@ -304,8 +308,9 @@ export function useEpubRuntime({
     if (!view) return;
 
     const cfi = view.location?.start?.cfi;
-    view.themes.registerCss("readlet-preferences", preferenceCss);
-    view.themes.select("readlet-preferences");
+    for (const contents of view.getContents() as unknown as Contents[]) {
+      contents.addStylesheetCss(preferenceCss, "readlet-preferences");
+    }
     const anchor = window.setTimeout(() => {
       if (cfi) void view.display(cfi);
     }, 80);

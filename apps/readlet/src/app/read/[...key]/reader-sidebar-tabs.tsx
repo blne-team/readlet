@@ -2,6 +2,8 @@
 
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useReaderChrome } from "./reader-shell";
 
 export function ReaderSidebarToggle({
   open,
@@ -14,22 +16,52 @@ export function ReaderSidebarToggle({
   mobileOpen: boolean;
   onToggle: () => void;
 }) {
+  const { panelTarget } = useReaderChrome();
   const label = open ? "Close reader panel" : "Open reader panel";
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-label={label}
-      title={label}
-      aria-expanded={open}
-      className={`z-50 inline-flex size-11 items-center justify-center rounded-r-lg border border-l-0 border-separator bg-background text-secondary shadow-page transition-[left,background-color,color] hover:bg-fill hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent xl:absolute xl:top-3 ${mobileOpen ? "fixed top-[calc(0.75rem+env(safe-area-inset-top))] left-[min(20rem,calc(100vw-3rem))]" : "absolute top-3 left-0"} ${desktopOpen ? "xl:left-72" : "xl:left-0"}`}
-    >
-      {open ? (
-        <PanelLeftClose aria-hidden="true" className="size-4" />
-      ) : (
-        <PanelLeftOpen aria-hidden="true" className="size-4" />
+    <>
+      {panelTarget &&
+        !mobileOpen &&
+        createPortal(
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label={label}
+            title={label}
+            aria-expanded={open}
+            className="inline-flex size-11 items-center justify-center rounded-lg text-secondary transition-colors hover:bg-fill hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            <PanelLeftOpen aria-hidden="true" className="size-4" />
+          </button>,
+          panelTarget,
+        )}
+      {mobileOpen && (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={label}
+          title={label}
+          aria-expanded={open}
+          className="fixed top-[calc(0.75rem+env(safe-area-inset-top))] left-[min(20rem,calc(100vw-3rem))] z-50 inline-flex size-11 items-center justify-center rounded-r-lg border border-l-0 border-separator bg-background text-secondary shadow-page hover:bg-fill hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent xl:hidden"
+        >
+          <PanelLeftClose aria-hidden="true" className="size-4" />
+        </button>
       )}
-    </button>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={label}
+        title={label}
+        aria-expanded={open}
+        className={`absolute top-3 z-50 hidden size-11 items-center justify-center rounded-r-lg border border-l-0 border-separator bg-background text-secondary shadow-page transition-[left,background-color,color] hover:bg-fill hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent xl:inline-flex ${desktopOpen ? "xl:left-72" : "xl:left-0"}`}
+      >
+        {open ? (
+          <PanelLeftClose aria-hidden="true" className="size-4" />
+        ) : (
+          <PanelLeftOpen aria-hidden="true" className="size-4" />
+        )}
+      </button>
+    </>
   );
 }
 

@@ -49,14 +49,15 @@ single header row and the left panel holds Contents, Marks, and Notes. The PDF
 panel also holds page thumbnails and Search. The panel can be closed to give the
 book more room. On a phone, the controls appear at the bottom when you tap the
 middle of the book and hide again after a short pause. The panel opens as a
-drawer. Tap the left or right edge to turn a paged book.
+drawer. On larger screens the header stays visible while you read. Tap the left
+or right edge to turn a paged book.
 
 ## PDFs
 
 **Zoom** is automatic by default: fitted to the width of your window, but never
 past 125%, because a Letter page blown up to fill a wide monitor sets the body
 text at about twenty-four points. Fit-width, fit-page and fixed percentages are
-all available.
+all available, including in the view settings on a phone.
 
 **Search** works over the whole document and runs entirely in your browser.
 Results stream in as pages are scanned, and the first search costs one pass over
@@ -83,9 +84,8 @@ right edges turn pages, horizontal swipes work on touchscreens, and a two-finger
 gesture zooms around its midpoint. Pages can also be rotated clockwise.
 
 Display settings group one-page, two-page and continuous layouts with paper,
-sepia and night tints, contrast, and page spacing. On phones and in fullscreen,
-the controls hide after a short pause; clicking the middle of the page brings
-them back.
+sepia and night tints, contrast, and page spacing. On phones, the controls hide
+after a short pause; tapping the middle of the page brings them back.
 
 ## Opening a big book is cheap
 

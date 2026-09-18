@@ -102,10 +102,12 @@ export function PdfControls({
       open={settingsOpen}
       onOpenChange={onSettingsOpen}
       layout={layout}
+      zoom={zoom}
       tint={tint}
       contrast={contrast}
       pageGap={pageGap}
       onLayout={onLayout}
+      onZoom={onZoom}
       onTint={onTint}
       onContrast={onContrast}
       onPageGap={onPageGap}

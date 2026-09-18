@@ -82,17 +82,21 @@ export function PdfReader({
   useEffect(() => setPreferences(readPdfPreferences()), []);
   useEffect(() => {
     const query = window.matchMedia("(max-width: 639px)");
-    const update = () => setCompact(query.matches);
+    const update = () => {
+      setCompact(query.matches);
+      if (!query.matches) chrome.show();
+    };
     update();
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
-  }, []);
+  }, [chrome.show]);
 
   const keepChromeVisible = useCallback(
     () => setChromeActivityAt(Date.now()),
     [],
   );
   const toggleChrome = useCallback(() => {
+    if (!window.matchMedia("(max-width: 639px)").matches) return;
     keepChromeVisible();
     chrome.toggle();
   }, [chrome.toggle, keepChromeVisible]);
@@ -172,7 +176,7 @@ export function PdfReader({
 
   useEffect(() => {
     if (
-      (!compact && !fullscreen) ||
+      !compact ||
       status !== "ready" ||
       !chrome.visible ||
       panel.mobileOpen ||
@@ -188,7 +192,6 @@ export function PdfReader({
     return () => window.clearTimeout(timer);
   }, [
     compact,
-    fullscreen,
     status,
     chrome.visible,
     chrome.hide,

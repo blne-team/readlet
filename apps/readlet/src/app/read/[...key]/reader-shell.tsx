@@ -20,6 +20,7 @@ type ReaderChrome = {
   toolbarTarget: HTMLDivElement | null;
   actionsTarget: HTMLDivElement | null;
   progressTarget: HTMLDivElement | null;
+  panelTarget: HTMLDivElement | null;
 };
 
 const ReaderChromeContext = createContext<ReaderChrome | null>(null);
@@ -67,6 +68,7 @@ export function ReaderShell({
   const [progressTarget, setProgressTarget] = useState<HTMLDivElement | null>(
     null,
   );
+  const [panelTarget, setPanelTarget] = useState<HTMLDivElement | null>(null);
   const hide = useCallback(() => setVisible(false), []);
   const show = useCallback(() => setVisible(true), []);
   const toggle = useCallback(() => setVisible((current) => !current), []);
@@ -79,8 +81,18 @@ export function ReaderShell({
       toolbarTarget,
       actionsTarget,
       progressTarget,
+      panelTarget,
     }),
-    [visible, hide, show, toggle, toolbarTarget, actionsTarget, progressTarget],
+    [
+      visible,
+      hide,
+      show,
+      toggle,
+      toolbarTarget,
+      actionsTarget,
+      progressTarget,
+      panelTarget,
+    ],
   );
 
   return (
@@ -88,7 +100,7 @@ export function ReaderShell({
       <div className="flex h-dvh min-w-0 flex-col overflow-hidden">
         {visible && (
           <header className="reader-topbar relative shrink-0 border-b border-separator bg-background">
-            <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:gap-4">
+            <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem_2.75rem] items-center xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:gap-4">
               <div className="contents xl:flex xl:min-w-0 xl:items-center xl:gap-2">
                 <Link
                   href="/"
@@ -110,6 +122,10 @@ export function ReaderShell({
                 ref={setToolbarTarget}
                 className="hidden items-center justify-center xl:flex"
               />
+              <div
+                ref={setPanelTarget}
+                className="col-start-3 row-start-1 flex items-center justify-center xl:hidden"
+              />
               <div className="contents xl:flex xl:min-w-0 xl:items-center xl:justify-end xl:gap-2">
                 <div
                   ref={setActionsTarget}
@@ -119,7 +135,7 @@ export function ReaderShell({
                   href={downloadUrl}
                   download
                   aria-label="Download book"
-                  className="col-start-3 row-start-1 inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-sm font-medium text-secondary transition-colors hover:bg-fill hover:text-foreground xl:col-auto xl:row-auto xl:w-auto xl:gap-1.5 xl:px-2"
+                  className="col-start-4 row-start-1 inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-sm font-medium text-secondary transition-colors hover:bg-fill hover:text-foreground xl:col-auto xl:row-auto xl:w-auto xl:gap-1.5 xl:px-2"
                 >
                   <ArrowDownToLine aria-hidden="true" className="size-4" />
                   <span className="hidden xl:inline">Download</span>

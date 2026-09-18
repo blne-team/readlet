@@ -6,18 +6,22 @@ import { BUTTON, BUTTON_ROUND, SELECT } from "@/app/ui";
 import {
   PDF_LAYOUTS,
   PDF_TINTS,
+  PDF_ZOOM_STEPS,
   type PdfLayout,
   type PdfTint,
+  type PdfZoom,
 } from "../../pdf-types";
 
 export function PdfSettings({
   open,
   onOpenChange,
   layout,
+  zoom,
   tint,
   contrast,
   pageGap,
   onLayout,
+  onZoom,
   onTint,
   onContrast,
   onPageGap,
@@ -26,10 +30,12 @@ export function PdfSettings({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   layout: PdfLayout;
+  zoom: PdfZoom;
   tint: PdfTint;
   contrast: number;
   pageGap: number;
   onLayout: (layout: PdfLayout) => void;
+  onZoom: (zoom: PdfZoom) => void;
   onTint: (tint: PdfTint) => void;
   onContrast: (contrast: number) => void;
   onPageGap: (pageGap: number) => void;
@@ -80,6 +86,30 @@ export function PdfSettings({
               </button>
             </div>
             <div className="space-y-4">
+              <label className="grid gap-1.5 text-xs font-medium text-secondary sm:hidden">
+                Zoom
+                <select
+                  value={String(zoom)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    onZoom(
+                      value === "auto" || value === "width" || value === "page"
+                        ? value
+                        : Number(value),
+                    );
+                  }}
+                  className={`${SELECT} w-full text-foreground`}
+                >
+                  <option value="auto">Automatic</option>
+                  <option value="width">Fit width</option>
+                  <option value="page">Fit page</option>
+                  {PDF_ZOOM_STEPS.map((value) => (
+                    <option key={value} value={value}>
+                      {Math.round(value * 100)}%
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="grid gap-1.5 text-xs font-medium text-secondary">
                 Layout
                 <select

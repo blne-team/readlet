@@ -77,6 +77,7 @@ export function EpubReader({
     [],
   );
   const toggleChrome = useCallback(() => {
+    if (!window.matchMedia("(max-width: 639px)").matches) return;
     keepChromeVisible();
     chrome.toggle();
   }, [chrome.toggle, keepChromeVisible]);
@@ -134,11 +135,14 @@ export function EpubReader({
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 639px)");
-    const update = () => setCompact(query.matches);
+    const update = () => {
+      setCompact(query.matches);
+      if (!query.matches) chrome.show();
+    };
     update();
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
-  }, []);
+  }, [chrome.show]);
 
   // Phone chrome is useful on arrival, then gets out of the way. A tap in the
   // middle of the book brings it back through the rendition interaction
