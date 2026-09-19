@@ -148,6 +148,10 @@ input[type="range"]:enabled {
   animation: reader-loading 1.4s ease-in-out infinite;
 }
 
+.import-progress-bar {
+  animation: import-progress 1.35s ease-in-out infinite;
+}
+
 @keyframes reader-loading {
   from {
     transform: translateX(-100%);
@@ -157,9 +161,24 @@ input[type="range"]:enabled {
   }
 }
 
+@keyframes import-progress {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(310%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .reader-loading-bar {
+  .reader-loading-bar,
+  .import-progress-bar {
     animation: none;
+  }
+
+  .import-progress-bar {
+    width: 100%;
+    opacity: 0.55;
   }
 }
 
