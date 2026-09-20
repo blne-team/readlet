@@ -186,12 +186,29 @@ export class CatalogService {
  * query means would be a bug nobody would think to look for.
  */
 export function searchBooks(books: Book[], query: string): Book[] {
-  const needle = query.trim().toLowerCase();
+  const searchable = (value: string): string =>
+    value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  const needle = searchable(query.trim());
   if (!needle) return books;
 
   return books.filter((book) =>
-    [book.title, book.authors.join(" "), book.publisher ?? ""]
+    [
+      book.title,
+      book.authors.join(" "),
+      book.publisher ?? "",
+      book.subjects?.join(" ") ?? "",
+      book.series ?? "",
+      book.identifier ?? "",
+      book.isbn ?? "",
+      book.language ?? "",
+      book.formats.map((format) => format.format).join(" "),
+    ]
       .join(" ")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .includes(needle),
   );

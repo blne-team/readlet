@@ -27,6 +27,7 @@
 
 import { access } from "node:fs/promises";
 import path from "node:path";
+import { CATALOG_FILE, CATALOG_VERSION, type Catalog } from "@readlet/core";
 import { syncLibrary } from "./lib/bucket.js";
 import { buildLibrary } from "./lib/build.js";
 import { CONFIG_FILES, DEFAULTS, loadConfig } from "./lib/config.js";
@@ -167,11 +168,24 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // A forced publish is a clean build, so it deliberately does not inherit
+  // timestamps from the catalog it is about to replace.
+  const published =
+    admin && !options.force ? await admin.read(CATALOG_FILE) : null;
+  const previous = published
+    ? (JSON.parse(new TextDecoder().decode(published)) as Catalog)
+    : undefined;
+  if (previous && previous.version !== CATALOG_VERSION) {
+    throw new Error(
+      `The published catalog uses version ${previous.version}; version ${CATALOG_VERSION} is required. Re-run with --force to publish a clean catalog.`,
+    );
+  }
+
   log(`Building ${here(config.outputDir)}/ from ${here(config.inputDir)}/…`);
   const { books, failed } = await buildLibrary(
     config.inputDir,
     config.outputDir,
-    { height: options.height ?? config.coverHeight },
+    { height: options.height ?? config.coverHeight, previous },
     thumb,
     log,
   );

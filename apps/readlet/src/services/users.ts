@@ -1,5 +1,6 @@
 import {
   isUserId,
+  type OpdsCredential,
   progressFile,
   readerMarksFile,
   STATE_VERSION,
@@ -53,6 +54,42 @@ function newUserId(): string {
   return `u-${crypto.randomUUID()}`;
 }
 
+function randomToken(bytes: number): string {
+  const value = crypto.getRandomValues(new Uint8Array(bytes));
+  return btoa(String.fromCharCode(...value))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+async function passwordHash(password: string, salt: string): Promise<string> {
+  const bytes = new TextEncoder().encode(`${salt}:${password}`);
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return btoa(String.fromCharCode(...digest))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function sameSecret(left: string, right: string): boolean {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index++) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+function validCredential(value: unknown): value is OpdsCredential {
+  return (
+    record(value) &&
+    typeof value.username === "string" &&
+    typeof value.salt === "string" &&
+    typeof value.passwordHash === "string" &&
+    typeof value.createdAt === "string"
+  );
+}
+
 function encode(directory: UserDirectory): Uint8Array {
   return new TextEncoder().encode(JSON.stringify(directory, null, 2));
 }
@@ -88,6 +125,8 @@ function parseDirectory(value: unknown): UserDirectory {
       typeof candidate.createdAt !== "string" ||
       typeof candidate.createdBy !== "string" ||
       !isUserId(candidate.createdBy) ||
+      (candidate.opdsCredential !== undefined &&
+        !validCredential(candidate.opdsCredential)) ||
       (candidate.status === "active" && !candidate.accessSubject) ||
       (candidate.status === "pending" && candidate.accessSubject !== undefined)
     ) {
@@ -156,6 +195,52 @@ export class UserService {
     return (await this.stored()).directory.users.sort((left, right) =>
       left.createdAt.localeCompare(right.createdAt),
     );
+  }
+
+  async authenticateOpds(username: string, password: string): Promise<User> {
+    const user = (await this.stored()).directory.users.find(
+      (candidate) => candidate.opdsCredential?.username === username,
+    );
+    if (!user?.opdsCredential || user.status !== "active") {
+      throw new UserAccessError("The OPDS credentials are not valid.");
+    }
+    const actual = await passwordHash(password, user.opdsCredential.salt);
+    if (!sameSecret(actual, user.opdsCredential.passwordHash)) {
+      throw new UserAccessError("The OPDS credentials are not valid.");
+    }
+    return user;
+  }
+
+  async createOpdsCredential(
+    actor: User,
+    userId: string,
+  ): Promise<{ username: string; password: string }> {
+    const password = randomToken(32);
+    const salt = randomToken(16);
+    const hash = await passwordHash(password, salt);
+    const username = userId;
+
+    await this.change(actor, (directory) => {
+      const user = directory.users.find((candidate) => candidate.id === userId);
+      if (user?.status !== "active") {
+        throw new Error("Choose an active user.");
+      }
+      user.opdsCredential = {
+        username,
+        salt,
+        passwordHash: hash,
+        createdAt: new Date().toISOString(),
+      };
+    });
+    return { username, password };
+  }
+
+  async revokeOpdsCredential(actor: User, userId: string): Promise<void> {
+    await this.change(actor, (directory) => {
+      const user = directory.users.find((candidate) => candidate.id === userId);
+      if (!user) throw new Error("That user no longer exists.");
+      delete user.opdsCredential;
+    });
   }
 
   /** Revalidates that an authenticated actor still has manager access. */

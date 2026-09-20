@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
+import { CATALOG_VERSION } from "@readlet/core";
 import {
   type Book,
   CatalogService,
@@ -24,6 +25,8 @@ beforeEach(resetCatalogMemo);
 function book(title: string, extra: Partial<Book> = {}): Book {
   return {
     id: title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    addedAt: new Date(0).toISOString(),
+    modifiedAt: new Date(0).toISOString(),
     title,
     authors: [],
     formats: [{ format: "epub", file: "b.epub", size: 1 }],
@@ -32,7 +35,9 @@ function book(title: string, extra: Partial<Book> = {}): Book {
 }
 
 function library(books: readonly Book[]) {
-  return { "catalog.json": JSON.stringify({ version: 1, books }) };
+  return {
+    "catalog.json": JSON.stringify({ version: CATALOG_VERSION, books }),
+  };
 }
 
 test("an unpublished catalog is an empty shelf, not an error", async () => {

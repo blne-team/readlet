@@ -27,15 +27,11 @@ export const OPDS_JSON = "application/opds+json";
 export const OPENSEARCH = "application/opensearchdescription+xml";
 
 /**
- * Freely downloadable, no payment and no authentication. The generic
- * `.../acquisition` would also be read by every client, but this one says
- * something true that the generic one leaves open.
- *
- * OPDS 2.0 permits a short alias (`download`) for the same relation. The URI is
- * compliant in both versions, so both serializers use it and the projection
- * from a book to its links is written once.
+ * A complete publication can be retrieved after satisfying this catalog's
+ * authentication requirement. The generic relation is deliberately used:
+ * `open-access` would promise that no authentication is required.
  */
-export const ACQUISITION = "http://opds-spec.org/acquisition/open-access";
+export const ACQUISITION = "http://opds-spec.org/acquisition";
 export const IMAGE = "http://opds-spec.org/image";
 export const THUMBNAIL = "http://opds-spec.org/image/thumbnail";
 

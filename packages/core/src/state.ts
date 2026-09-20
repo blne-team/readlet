@@ -47,6 +47,13 @@ export function isStateKey(key: string): boolean {
 export type UserRole = "manager" | "member";
 export type UserStatus = "pending" | "active" | "disabled" | "deleting";
 
+export type OpdsCredential = {
+  username: string;
+  salt: string;
+  passwordHash: string;
+  createdAt: string;
+};
+
 /** A Cloudflare Access identity admitted to this library. */
 export type User = {
   /** Stable Readlet identity, also used as the reading-state file name. */
@@ -59,6 +66,8 @@ export type User = {
   status: UserStatus;
   createdAt: string;
   createdBy: string;
+  /** A revocable app password for catalog, cover, and download access. */
+  opdsCredential?: OpdsCredential;
 };
 
 export type UserDirectory = {

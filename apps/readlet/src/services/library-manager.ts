@@ -190,8 +190,11 @@ export class LibraryManagerService {
           ? await readEpubSource(source)
           : await readPdfSource(source, name);
       const metadata = parsed.metadata;
+      const publishedAt = new Date().toISOString();
       const book: Book = {
         id,
+        addedAt: publishedAt,
+        modifiedAt: publishedAt,
         title: metadata.title || name.replace(/\.(epub|pdf)$/i, ""),
         authors: metadata.authors ?? [],
         publisher: metadata.publisher,

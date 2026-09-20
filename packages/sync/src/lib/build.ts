@@ -27,6 +27,10 @@ import { messageOf } from "./util.js";
 export type BuildOptions = {
   /** Cover thumbnail height, in pixels. */
   height: number;
+  /** Time recorded on this build. Primarily supplied by deterministic callers. */
+  generatedAt?: string;
+  /** The catalog currently published at the destination. */
+  previous?: Catalog;
 };
 
 export type BuildResult = {
@@ -93,6 +97,7 @@ async function publishBook(
   thumb: Thumbnailer | null,
   ids: Set<string>,
   index: number,
+  generatedAt: string,
 ): Promise<{ book: Book; encrypted: boolean }> {
   const extensionOf = (file: string) => path.extname(file).toLowerCase();
   const epub = files.find((file) => extensionOf(file) === ".epub");
@@ -176,7 +181,7 @@ async function publishBook(
     if (temporary) await rm(temporary, { force: true });
   }
 
-  const book: Book = {
+  const metadataBook: Omit<Book, "addedAt" | "modifiedAt"> = {
     id,
     title,
     authors: metadata.authors ?? [],
@@ -194,6 +199,21 @@ async function publishBook(
     pages: metadata.pages,
     cover: coverFile,
     formats,
+  };
+
+  const previous = options.previous?.books.find((book) => book.id === id);
+  const previousMetadata = previous
+    ? (({ addedAt: _addedAt, modifiedAt: _modifiedAt, ...book }) => book)(
+        previous,
+      )
+    : null;
+  const unchanged =
+    previousMetadata !== null &&
+    JSON.stringify(previousMetadata) === JSON.stringify(metadataBook);
+  const book: Book = {
+    ...metadataBook,
+    addedAt: previous?.addedAt ?? generatedAt,
+    modifiedAt: unchanged && previous ? previous.modifiedAt : generatedAt,
   };
 
   await writeFile(
@@ -215,6 +235,7 @@ export async function buildLibrary(
   thumb: Thumbnailer | null,
   log: (message: string) => void,
 ): Promise<BuildResult> {
+  const generatedAt = options.generatedAt ?? new Date().toISOString();
   const files = await collect(inputDir);
   const groups = groupByBook(files).sort((a, b) => a[0].localeCompare(b[0]));
   if (groups.length === 0) {
@@ -241,6 +262,7 @@ export async function buildLibrary(
         thumb,
         ids,
         index,
+        generatedAt,
       );
       books.push(book);
       log(
@@ -259,7 +281,7 @@ export async function buildLibrary(
 
   const catalog: Catalog = {
     version: CATALOG_VERSION,
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     books: books.sort((a, b) => a.title.localeCompare(b.title)),
   };
   await writeFile(

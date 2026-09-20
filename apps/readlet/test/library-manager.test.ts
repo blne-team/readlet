@@ -3,6 +3,7 @@ import { beforeEach, test } from "node:test";
 import {
   type Book,
   CATALOG_FILE,
+  CATALOG_VERSION,
   type Catalog,
   LIBRARY_OPERATIONS_FILE,
   progressFile,
@@ -33,6 +34,8 @@ const manager: User = {
 function book(id: string, title: string): Book {
   return {
     id,
+    addedAt: new Date(0).toISOString(),
+    modifiedAt: new Date(0).toISOString(),
     title,
     authors: ["A. Reader"],
     cover: "cover.webp",
@@ -45,7 +48,10 @@ function book(id: string, title: string): Book {
 
 function objects(books: Book[]): Record<string, string> {
   const stored: Record<string, string> = {
-    [CATALOG_FILE]: JSON.stringify({ version: 1, books } satisfies Catalog),
+    [CATALOG_FILE]: JSON.stringify({
+      version: CATALOG_VERSION,
+      books,
+    } satisfies Catalog),
     [USERS_FILE]: JSON.stringify({
       version: 1,
       users: [manager],

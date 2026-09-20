@@ -37,22 +37,27 @@ function present<T extends Record<string, unknown>>(value: T): Partial<T> {
   ) as Partial<T>;
 }
 
-function jsonLink({ rel, href, type, title, count, templated }: OpdsLink) {
+function jsonLink({
+  rel,
+  href,
+  type,
+  title,
+  length,
+  count,
+  templated,
+}: OpdsLink) {
   return present({
     rel,
     href,
     type,
     title,
+    size: length,
     templated: templated ? true : undefined,
     properties: count === undefined ? undefined : { numberOfItems: count },
   });
 }
 
-function publication(
-  book: Book,
-  updated: string,
-  origin: URL,
-): Record<string, unknown> {
+function publication(book: Book, origin: URL): Record<string, unknown> {
   const { asset } = urls(origin, "json");
   const cover = book.cover
     ? `/cover/${encodeKey(bookKey(book.id, book.cover))}`
@@ -69,8 +74,10 @@ function publication(
       author: book.authors.length === 1 ? book.authors[0] : book.authors,
       language: book.language,
       publisher: book.publisher,
-      published: book.published,
-      modified: updated,
+      published: /^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(book.published ?? "")
+        ? book.published
+        : undefined,
+      modified: book.modifiedAt,
       subject: book.subjects,
       description: book.description,
       numberOfPages: book.pages,
@@ -84,6 +91,7 @@ function publication(
           rel: ACQUISITION,
           href: asset(`/download/${encodeKey(bookKey(book.id, format.file))}`),
           type: contentTypeFor(format.file),
+          length: format.size,
         }),
       ),
       // The format the shelf's own Read button opens, through the same helper.
@@ -114,28 +122,31 @@ function publication(
  * without having to count what it was sent.
  */
 export function jsonFeed(feed: OpdsFeed, origin: URL): string {
-  return JSON.stringify(
-    present({
-      metadata: present({
-        title: feed.title,
-        modified: feed.updated,
-        numberOfItems: feed.page?.total,
-        itemsPerPage: feed.page?.size,
-        currentPage: feed.page?.number,
-      }),
-      links: feed.links.map(jsonLink),
-      navigation: (feed.navigation ?? []).map((entry) =>
-        jsonLink({
-          rel: "subsection",
-          href: entry.href,
-          type: feedType(entry.kind, "json"),
-          title: entry.title,
-          count: entry.count,
-        }),
-      ),
-      publications: (feed.books ?? []).map((book) =>
-        publication(book, feed.updated, origin),
-      ),
+  const document: Record<string, unknown> = present({
+    metadata: present({
+      title: feed.title,
+      modified: feed.updated,
+      numberOfItems: feed.page?.total,
+      itemsPerPage: feed.page?.size,
+      currentPage: feed.page?.number,
     }),
-  );
+    links: feed.links.map(jsonLink),
+    navigation: feed.navigation?.map((entry) =>
+      jsonLink({
+        rel: "subsection",
+        href: entry.href,
+        type: feedType(entry.kind, "json"),
+        title: entry.title,
+        count: entry.count,
+      }),
+    ),
+    publications: feed.books?.map((book) => publication(book, origin)),
+  });
+
+  // Empty collections still identify the role of the feed. Dropping them
+  // turns an empty search result into a document that is not an OPDS feed.
+  if (feed.navigation) document.navigation = document.navigation ?? [];
+  if (feed.books) document.publications = document.publications ?? [];
+
+  return JSON.stringify(document);
 }

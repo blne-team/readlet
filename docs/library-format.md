@@ -27,16 +27,20 @@ shelf.
 
 Holds what the book records about itself: title, authors, publisher, date,
 language, identifier, ISBN, description, subjects, series, and a page count for
-formats that have one.
+formats that have one. Readlet also records `addedAt` and `modifiedAt`; a sync
+preserves them when the previously published book is unchanged.
 
-Only the title is required. A book that doesn't record a publisher or a date is
-normal, not broken. For how each format stores this and how far it's trusted,
-see [publishing](publishing.md#what-ends-up-on-your-shelf).
+Of the metadata extracted from the publication, only the title is required. A
+book that doesn't record a publisher or a date is normal, not broken. For how
+each format stores this and how far it's trusted, see
+[publishing](publishing.md#what-ends-up-on-your-shelf).
 
 ## catalog.json
 
-Generated from every `metadata.json` in the library. Delete it and the next
-`pnpm sync` writes it again.
+Generated from every `metadata.json` in the library. Catalog format version 2
+requires the per-book timestamps used by OPDS recent and updated feeds. Publish
+once with `pnpm sync --force` when replacing a version 1 catalog; this is a
+clean rebuild rather than a migration.
 
 ## .readlet/
 

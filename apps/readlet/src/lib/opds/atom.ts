@@ -77,11 +77,11 @@ function navigationEntry(entry: OpdsNavigation, updated: string): string {
 }
 
 /** Everything a book contributes to an entry that is not one of its links. */
-function bookMetadata(book: Book, updated: string): string {
+function bookMetadata(book: Book): string {
   return [
     element("id", bookId(book.id)),
     element("title", book.title),
-    element("updated", updated),
+    element("updated", book.modifiedAt),
     ...book.authors.map((name) => `<author>${element("name", name)}</author>`),
     element("dc:language", book.language),
     element("dc:publisher", book.publisher),
@@ -174,8 +174,7 @@ export function atomFeed(feed: OpdsFeed, origin: URL): string {
       navigationEntry(entry, feed.updated),
     ),
     ...(feed.books ?? []).map(
-      (book) =>
-        `<entry>${bookMetadata(book, feed.updated)}${bookLinks(book, asset)}</entry>`,
+      (book) => `<entry>${bookMetadata(book)}${bookLinks(book, asset)}</entry>`,
     ),
     "</feed>",
     "",

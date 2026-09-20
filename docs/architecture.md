@@ -174,4 +174,4 @@ production.
 
 The catalog is held in an in-isolate memo backed by the Workers Cache API for 60
 seconds. Covers carry `max-age=86400` with an ETag. OPDS feeds carry
-`public, max-age=60`, a weak ETag, and `Vary: Accept`.
+`private, max-age=60`, a weak ETag, and `Vary: Accept`.

@@ -10,7 +10,7 @@ import { serviceUnavailable } from "@/lib/http";
 import { enforceDownloadRateLimit, enforceR2RateLimit } from "@/lib/rate-limit";
 import { getServices } from "@/services/container";
 import { reading } from "@/services/errors";
-import { routeUser } from "@/services/request-user";
+import { opdsRouteUser } from "@/services/request-user";
 
 /**
  * The content types `?inline=1` is honoured for.
@@ -74,7 +74,7 @@ async function serve(
   request: Request,
   ctx: RouteContext<"/download/[...key]">,
 ) {
-  const user = await routeUser(request);
+  const user = await opdsRouteUser(request);
   if (user instanceof Response) return user;
 
   const { key } = await ctx.params;

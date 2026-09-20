@@ -118,6 +118,38 @@ test("members cannot mutate the directory even with a service reference", async 
   );
 });
 
+test("an OPDS app password authenticates until it is replaced or revoked", async () => {
+  const manager = user();
+  const library = memoryStorage(directory([manager]));
+  const users = new UserService(library.storage);
+
+  const first = await users.createOpdsCredential(manager, manager.id);
+  assert.equal(
+    (await users.authenticateOpds(first.username, first.password)).id,
+    manager.id,
+  );
+  await assert.rejects(
+    users.authenticateOpds(first.username, "wrong"),
+    UserAccessError,
+  );
+
+  const second = await users.createOpdsCredential(manager, manager.id);
+  await assert.rejects(
+    users.authenticateOpds(first.username, first.password),
+    UserAccessError,
+  );
+  assert.equal(
+    (await users.authenticateOpds(second.username, second.password)).id,
+    manager.id,
+  );
+
+  await users.revokeOpdsCredential(manager, manager.id);
+  await assert.rejects(
+    users.authenticateOpds(second.username, second.password),
+    UserAccessError,
+  );
+});
+
 test("the final active manager cannot be disabled, demoted, rebound, or removed", async () => {
   const manager = user();
   const users = new UserService(memoryStorage(directory([manager])).storage);

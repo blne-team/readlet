@@ -41,6 +41,7 @@ export {
 } from "./range.js";
 export type {
   BookProgress,
+  OpdsCredential,
   Progress,
   User,
   UserDirectory,

@@ -27,6 +27,8 @@ const PUBLISHED = "2026-01-02T03:04:05.000Z";
 function book(id: string, title: string, rest: Partial<Book> = {}): Book {
   return {
     id,
+    addedAt: PUBLISHED,
+    modifiedAt: PUBLISHED,
     title,
     authors: [],
     formats: [{ format: "epub", file: `${id}.epub`, size: 4096 }],
@@ -37,7 +39,7 @@ function book(id: string, title: string, rest: Partial<Book> = {}): Book {
 const DRACULA = book("dracula", "Dracula", {
   authors: ["Bram Stoker"],
   publisher: "Archibald Constable & Co.",
-  published: "1897",
+  published: "1897-01-01",
   language: "en",
   isbn: "9780000000002",
   subjects: ["Horror", "Gothic fiction"],
@@ -161,6 +163,8 @@ test("the root is a navigation feed that says where everything is", async () => 
     entries.map((link) => link.getAttribute("href")),
     [
       "https://shelf.test/opds/books",
+      "https://shelf.test/opds/recent",
+      "https://shelf.test/opds/updated",
       "https://shelf.test/opds/authors",
       "https://shelf.test/opds/subjects",
       "https://shelf.test/opds/series",
@@ -171,6 +175,8 @@ test("the root is a navigation feed that says where everything is", async () => 
   // itself with a URN rather than with the path it points at.
   assert.deepEqual(text(document, "id").slice(1), [
     "urn:readlet:books",
+    "urn:readlet:recent",
+    "urn:readlet:updated",
     "urn:readlet:authors",
     "urn:readlet:subjects",
     "urn:readlet:series",
@@ -179,8 +185,8 @@ test("the root is a navigation feed that says where everything is", async () => 
   // All books names the whole shelf; the axes name only what is filed under
   // them, and the coverless, subjectless companion is in one and not the other.
   assert.equal(entries[0].getAttribute("thr:count"), "5");
-  assert.equal(entries[1].getAttribute("thr:count"), "3");
-  assert.equal(entries[2].getAttribute("thr:count"), "2");
+  assert.equal(entries[3].getAttribute("thr:count"), "3");
+  assert.equal(entries[4].getAttribute("thr:count"), "2");
 });
 
 test("an axis nothing is filed under is not offered", async () => {
@@ -190,7 +196,11 @@ test("an axis nothing is filed under is not offered", async () => {
 
   assert.deepEqual(
     links(document, "subsection").map((link) => link.getAttribute("href")),
-    ["https://shelf.test/opds/books"],
+    [
+      "https://shelf.test/opds/books",
+      "https://shelf.test/opds/recent",
+      "https://shelf.test/opds/updated",
+    ],
   );
 });
 
@@ -213,7 +223,7 @@ test("a book carries one acquisition link per format, with its size", async () =
 
   const acquisitions = links(
     document,
-    "http://opds-spec.org/acquisition/open-access",
+    "http://opds-spec.org/acquisition",
   ).filter((link) => link.getAttribute("href")?.includes("/dracula/"));
 
   assert.deepEqual(
@@ -303,7 +313,7 @@ test("a book's metadata reaches the entry", async () => {
   assert.ok(
     text(document, "dc:publisher").includes("Archibald Constable & Co."),
   );
-  assert.ok(text(document, "dc:issued").includes("1897"));
+  assert.ok(text(document, "dc:issued").includes("1897-01-01"));
   assert.ok(text(document, "dc:language").includes("en"));
   // A checked ISBN can be named as one; anything else is only an identifier.
   assert.ok(text(document, "dc:identifier").includes("urn:isbn:9780000000002"));
@@ -442,6 +452,32 @@ test("a feed that fits on one page has no paging links", async () => {
   for (const rel of ["first", "previous", "next", "last"]) {
     assert.equal(links(document, rel).length, 0, rel);
   }
+});
+
+test("recent feeds sort by each book's own timestamps", async () => {
+  const shelf: Shelf = {
+    generatedAt: PUBLISHED,
+    books: [
+      book("first", "First", {
+        addedAt: "2026-01-01T00:00:00.000Z",
+        modifiedAt: "2026-03-01T00:00:00.000Z",
+      }),
+      book("second", "Second", {
+        addedAt: "2026-02-01T00:00:00.000Z",
+        modifiedAt: "2026-02-01T00:00:00.000Z",
+      }),
+    ],
+  };
+
+  const added = await parse(get(shelf, ["recent"]));
+  assert.deepEqual(text(added, "title").slice(1), ["Second", "First"]);
+
+  const updated = await parse(get(shelf, ["updated"]));
+  assert.deepEqual(text(updated, "title").slice(1), ["First", "Second"]);
+  assert.deepEqual(text(updated, "updated").slice(1), [
+    "2026-03-01T00:00:00.000Z",
+    "2026-02-01T00:00:00.000Z",
+  ]);
 });
 
 test("an author's feed holds their books, and knows its way back", async () => {
@@ -650,7 +686,7 @@ test("the OpenSearch document is validated too", async () => {
 test("a feed is good for the minute the catalog memo is", async () => {
   assert.equal(
     get(SHELF, []).headers.get("cache-control"),
-    "public, max-age=60",
+    "private, max-age=60",
   );
 });
 
@@ -701,7 +737,7 @@ test("OPDS 2.0 is the same catalog as JSON", async () => {
     author: "Bram Stoker",
     language: "en",
     publisher: "Archibald Constable & Co.",
-    published: "1897",
+    published: "1897-01-01",
     modified: PUBLISHED,
     subject: ["Horror", "Gothic fiction"],
   });
@@ -776,5 +812,66 @@ test("?format wins over what a client asked for", async () => {
       "content-type",
     ) ?? "",
     /atom\+xml/,
+  );
+});
+
+test("Accept quality values choose the preferred supported representation", () => {
+  assert.match(
+    get(SHELF, [], {
+      accept: `${OPDS_JSON};q=0, application/atom+xml;q=1`,
+    }).headers.get("content-type") ?? "",
+    /atom\+xml/,
+  );
+  assert.match(
+    get(SHELF, [], {
+      accept: `application/atom+xml;q=0.2, ${OPDS_JSON};q=0.8`,
+    }).headers.get("content-type") ?? "",
+    /opds\+json/,
+  );
+});
+
+test("empty JSON results retain their publications collection", async () => {
+  const feed = (await get(SHELF, ["books"], {
+    query: "q=not-present",
+    accept: OPDS_JSON,
+  }).json()) as { publications?: unknown[] };
+  assert.deepEqual(feed.publications, []);
+});
+
+test("OPDS 2 omits a partial publication date that is not a JSON date", async () => {
+  const feed = (await get(
+    { books: [book("partial", "Partial", { published: "1897" })] },
+    ["books"],
+    { accept: OPDS_JSON },
+  ).json()) as { publications: { metadata: { published?: string } }[] };
+
+  assert.equal(feed.publications[0].metadata.published, undefined);
+});
+
+test("JSON acquisition links carry their byte size", async () => {
+  const feed = (await get(SHELF, ["books"], { accept: OPDS_JSON }).json()) as {
+    publications: { metadata: { title: string }; links: { size?: number }[] }[];
+  };
+  const dracula = feed.publications.find(
+    (publication) => publication.metadata.title === "Dracula",
+  );
+  assert.deepEqual(
+    dracula?.links.filter((link) => link.size).map((link) => link.size),
+    [512_000, 2_048_000],
+  );
+});
+
+test("navigation indexes page like publication feeds", async () => {
+  const many: Shelf = {
+    generatedAt: PUBLISHED,
+    books: Array.from({ length: PAGE_SIZE + 1 }, (_, index) =>
+      book(`book-${index}`, `Book ${index}`, { authors: [`Author ${index}`] }),
+    ),
+  };
+  const first = await parse(get(many, ["authors"]));
+  assert.equal(elements(first, "entry").length, PAGE_SIZE);
+  assert.equal(
+    links(first, "next")[0].getAttribute("href"),
+    "https://shelf.test/opds/authors?page=2",
   );
 });

@@ -63,7 +63,31 @@ export type OpdsRequest = {
 function formatFor({ query, accept }: OpdsRequest): OpdsFormat {
   const forced = query.get(FORMAT_PARAM);
   if (forced === "json" || forced === "atom") return forced;
-  return accept?.includes(OPDS_JSON) ? "json" : "atom";
+
+  const offered = (accept ?? "")
+    .split(",")
+    .map((part, order) => {
+      const [mediaType, ...parameters] = part.trim().split(";");
+      const quality = Number(
+        parameters
+          .map((parameter) => parameter.trim())
+          .find((parameter) => parameter.toLowerCase().startsWith("q="))
+          ?.slice(2) ?? 1,
+      );
+      return { mediaType: mediaType.toLowerCase(), quality, order };
+    })
+    .filter(({ quality }) => Number.isFinite(quality) && quality > 0)
+    .sort((left, right) =>
+      right.quality === left.quality
+        ? left.order - right.order
+        : right.quality - left.quality,
+    );
+
+  for (const { mediaType } of offered) {
+    if (mediaType === OPDS_JSON) return "json";
+    if (mediaType === "application/atom+xml") return "atom";
+  }
+  return "atom";
 }
 
 /** A page number, or the first page for anything that is not one. */
@@ -180,9 +204,10 @@ function paging(
   page: number,
   pages: number,
   query: string,
+  kind: OpdsKind = "acquisition",
 ): OpdsLink[] {
   if (pages < 2) return [];
-  const type = feedType("acquisition", format);
+  const type = feedType(kind, format);
   const to = (number: number): string => feed(path, { page: number, query });
 
   return [
@@ -258,21 +283,27 @@ function navigation(
   },
 ): OpdsFeed {
   const builder = urls(request.origin, format);
-  const self = builder.feed(path);
+  const pages = pageCount(entries.length);
+  const page = Math.min(pageFor(request.query), pages);
+  const self = builder.feed(path, { page });
 
   return {
     kind: "navigation",
     id: self,
     title,
     updated: updatedAt(shelf.generatedAt),
-    links: common(
-      builder,
-      format,
-      request.origin,
-      { kind: "navigation", href: self },
-      up,
-    ),
-    navigation: entries,
+    links: [
+      ...common(
+        builder,
+        format,
+        request.origin,
+        { kind: "navigation", href: self },
+        up,
+      ),
+      ...paging(builder, format, path, page, pages, "", "navigation"),
+    ],
+    navigation: entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    page: { number: page, size: PAGE_SIZE, total: entries.length },
   };
 }
 
@@ -327,6 +358,25 @@ function root(
     },
   ];
 
+  if (shelf.books.length > 0) {
+    entries.push(
+      {
+        id: navigationId("recent"),
+        title: "Recently added",
+        href: builder.feed("/opds/recent"),
+        kind: "acquisition",
+        count: shelf.books.length,
+      },
+      {
+        id: navigationId("updated"),
+        title: "Recently updated",
+        href: builder.feed("/opds/updated"),
+        kind: "acquisition",
+        count: shelf.books.length,
+      },
+    );
+  }
+
   for (const axis of Object.keys(AXES) as Axis[]) {
     const count = AXES[axis].group(shelf.books).length;
     // An axis nothing is filed under is a dead end, so it is not offered. A
@@ -374,6 +424,24 @@ function resolve(
     });
   }
 
+  if (first === "recent" || first === "updated") {
+    if (second !== undefined) return null;
+    const property = first === "recent" ? "addedAt" : "modifiedAt";
+    return acquisition(shelf, request, format, {
+      path: `/opds/${first}`,
+      title: first === "recent" ? "Recently added" : "Recently updated",
+      books: [...shelf.books].sort(
+        (left, right) =>
+          right[property].localeCompare(left[property]) ||
+          left.title.localeCompare(right.title),
+      ),
+      up: {
+        kind: "navigation",
+        href: urls(request.origin, format).feed("/opds"),
+      },
+    });
+  }
+
   if (!isAxis(first)) return null;
   const groups = AXES[first].group(shelf.books);
   const builder = urls(request.origin, format);
@@ -418,12 +486,11 @@ export function serveOpds(published: Shelf, request: OpdsRequest): Response {
   const shelf: Shelf = { ...published, books: listable(published.books) };
 
   const headers = new Headers({
-    "cache-control": `public, max-age=${MAX_AGE_SECONDS}`,
+    "cache-control": `private, max-age=${MAX_AGE_SECONDS}`,
     // Which version this is was negotiated from `Accept`, and the response is
-    // publicly cacheable — so without this a shared cache that stored the Atom
-    // one would go on handing it to clients asking for JSON, and the other way
-    // round. The URL is the same for both; the request header is the whole of
-    // what tells them apart.
+    // cacheable — so without this a cache that stored the Atom one could go on
+    // handing it to clients asking for JSON, and the other way round. The URL
+    // is the same for both; the request header is what tells them apart.
     vary: "accept",
   });
 

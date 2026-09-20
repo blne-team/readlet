@@ -6,7 +6,7 @@ import { GET as download } from "../src/app/download/[...key]/route.ts";
 import { serviceUnavailable } from "../src/lib/http.ts";
 import { createServices, setServices } from "../src/services/container.ts";
 import { LibraryUnavailableError } from "../src/services/errors.ts";
-import { startAccessFixture, userDirectory } from "./lib/access.ts";
+import { startAccessFixture, TEST_USER, userDirectory } from "./lib/access.ts";
 import { type MemoryLibrary, memoryStorage, nullCache } from "./lib/storage.ts";
 
 /**
@@ -84,8 +84,46 @@ test("private bytes require an Access token before reading storage", async () =>
     await ask(cover, COVER, { token: "" }),
   ]) {
     assert.equal(response.status, 401);
+    assert.match(response.headers.get("www-authenticate") ?? "", /^Basic /);
+    assert.match(
+      response.headers.get("link") ?? "",
+      /rel="http:\/\/opds-spec\.org\/auth\/document"/,
+    );
+    assert.match(
+      response.headers.get("content-type") ?? "",
+      /^application\/opds-authentication\+json/,
+    );
   }
   assert.deepEqual(memory.reads, []);
+});
+
+test("an OPDS app password reaches downloads and covers without Access", async () => {
+  const manager = { ...TEST_USER, role: "manager" as const };
+  const memory = memoryStorage({
+    [USERS_FILE]: JSON.stringify({ version: 1, users: [manager] }),
+    [BOOK]: TEXT,
+    [COVER]: new Uint8Array([0x52, 0x49, 0x46, 0x46]),
+  });
+  const services = createServices(memory.storage, nullCache());
+  setServices(services);
+  const credential = await services.users.createOpdsCredential(
+    manager,
+    manager.id,
+  );
+  const authorization = `Basic ${btoa(`${credential.username}:${credential.password}`)}`;
+
+  for (const response of [
+    await ask(download, BOOK, {
+      token: "",
+      headers: { authorization },
+    }),
+    await ask(cover, COVER, {
+      token: "",
+      headers: { authorization },
+    }),
+  ]) {
+    assert.equal(response.status, 200);
+  }
 });
 
 test("a verified but uninvited identity cannot read private bytes", async () => {
@@ -294,7 +332,7 @@ test("a cover is served, cached and validated", async () => {
   assert.equal(response.status, 200);
   assert.match(
     response.headers.get("cache-control") ?? "",
-    /^public, max-age=/,
+    /^private, max-age=/,
   );
   assert.ok(response.headers.get("etag"));
 });

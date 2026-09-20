@@ -4,7 +4,10 @@ import { siteOrigin } from "@/lib/origin";
 import { enforceR2RateLimit } from "@/lib/rate-limit";
 import { getServices } from "@/services/container";
 import { reading } from "@/services/errors";
-import { routeUser } from "@/services/request-user";
+import {
+  opdsAuthenticationDocument,
+  opdsRouteUser,
+} from "@/services/request-user";
 
 /**
  * The OPDS catalog, at `/opds` and everything under it.
@@ -33,10 +36,14 @@ export async function GET(
 }
 
 async function serve(request: Request, ctx: RouteContext<"/opds/[[...path]]">) {
-  const user = await routeUser(request);
+  const { path } = await ctx.params;
+  if (path?.length === 1 && path[0] === "auth") {
+    return opdsAuthenticationDocument(request);
+  }
+
+  const user = await opdsRouteUser(request);
   if (user instanceof Response) return user;
 
-  const { path } = await ctx.params;
   const { catalog, limits } = await getServices();
 
   // Every feed is a view of the catalog, so there is nothing on this route to

@@ -9,12 +9,9 @@ of these are larger than they look.
 
 ## Know this before you deploy
 
-**Readlet requires Cloudflare Access.** A deployment must supply its signed
-identity token and configure a bootstrap manager. Readlet's own directory then
-authorizes the shelf, books, OPDS, and state APIs.
-
-Scoped tokens are the planned fix, because OPDS clients do HTTP Basic rather
-than an identity provider.
+**Readlet requires Cloudflare Access for its browser interface.** A deployment
+must supply its signed identity token and configure a bootstrap manager.
+Dedicated OPDS clients use revocable per-user app passwords instead.
 
 **Nothing is encrypted.** Your library is published in the clear, and object
 keys are slugified titles — so a listing of your storage names your shelf.
@@ -32,10 +29,9 @@ Where reading and browsing are thin rather than absent.
 - **A page per book.** Your books' descriptions are read, published, and never
   shown, because there's no page where a book's own details live. The shelf row
   crowds the actions together and there's nowhere to see a large cover.
-- **Sorting, filtering, and a shelf that scales.** Search is a substring test
-  across title, authors and publisher. There's no sorting but alphabetical, no
-  filters, no ranking, and no pagination — every book renders every time.
-  `Bronte` won't find `Brontë` on the shelf, though it will inside a PDF.
+- **Sorting, filtering, and a shelf that scales.** Search covers the published
+  metadata and folds accents, but there are no interactive filters or relevance
+  ranking, and the browser shelf still renders every book at once.
 - **Search inside an EPUB.** PDFs are searchable; EPUBs aren't.
 
 ## Later

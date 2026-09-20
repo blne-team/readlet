@@ -4,7 +4,7 @@ import { imageContentType, isImage } from "@/lib/media";
 import { enforceR2RateLimit } from "@/lib/rate-limit";
 import { getServices } from "@/services/container";
 import { optional, reading } from "@/services/errors";
-import { routeUser } from "@/services/request-user";
+import { opdsRouteUser } from "@/services/request-user";
 
 /**
  * A day, rather than `immutable`. Covers only change when one is re-uploaded to
@@ -36,7 +36,7 @@ async function serve(
   request: Request,
   routeContext: RouteContext<"/cover/[...key]">,
 ) {
-  const user = await routeUser(request);
+  const user = await opdsRouteUser(request);
   if (user instanceof Response) return user;
 
   const { key } = await routeContext.params;
@@ -88,7 +88,7 @@ async function serve(
 
   const headers = new Headers({
     "content-type": found.object.contentType ?? imageContentType(objectKey),
-    "cache-control": `public, max-age=${MAX_AGE_SECONDS}`,
+    "cache-control": `private, max-age=${MAX_AGE_SECONDS}`,
     etag: found.object.etag,
     // An image served as something a browser sniffs its way into rendering
     // differently is the one way a cover could be more than a cover.

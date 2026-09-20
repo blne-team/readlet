@@ -1,4 +1,5 @@
 import type { User } from "@readlet/core";
+import { SITE_NAME } from "@/lib/site";
 import {
   type AccessIdentity,
   AccessIdentityError,
@@ -81,4 +82,68 @@ export async function routeUser(request: Request): Promise<User | Response> {
     }
     throw error;
   }
+}
+
+function opdsUnauthorized(request: Request): Response {
+  const authentication = new URL("/opds/auth", request.url).toString();
+  return Response.json(
+    {
+      id: authentication,
+      title: SITE_NAME,
+      authentication: [
+        {
+          type: "http://opds-spec.org/auth/basic",
+          labels: { login: "Username", password: "App password" },
+        },
+      ],
+    },
+    {
+      status: 401,
+      headers: {
+        "cache-control": "no-store",
+        "content-type": "application/opds-authentication+json; charset=utf-8",
+        link: `<${authentication}>; rel="http://opds-spec.org/auth/document"; type="application/opds-authentication+json"`,
+        "www-authenticate": `Basic realm="${SITE_NAME} OPDS", charset="UTF-8"`,
+      },
+    },
+  );
+}
+
+export function opdsAuthenticationDocument(request: Request): Response {
+  const response = opdsUnauthorized(request);
+  const headers = new Headers(response.headers);
+  headers.delete("www-authenticate");
+  return new Response(response.body, {
+    headers,
+  });
+}
+
+/** Cloudflare sessions for browsers, or a scoped app password for readers. */
+export async function opdsRouteUser(
+  request: Request,
+): Promise<User | Response> {
+  const authorization = request.headers.get("authorization");
+  const basic = authorization?.match(/^Basic\s+(.+)$/i);
+  if (basic) {
+    try {
+      const decoded = atob(basic[1]);
+      const separator = decoded.indexOf(":");
+      if (separator === -1) return opdsUnauthorized(request);
+      const { users } = await getServices();
+      return await users.authenticateOpds(
+        decoded.slice(0, separator),
+        decoded.slice(separator + 1),
+      );
+    } catch (error) {
+      if (error instanceof UserAccessError || error instanceof DOMException) {
+        return opdsUnauthorized(request);
+      }
+      throw error;
+    }
+  }
+
+  const user = await routeUser(request);
+  return user instanceof Response && user.status === 401
+    ? opdsUnauthorized(request)
+    : user;
 }

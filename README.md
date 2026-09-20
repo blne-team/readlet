@@ -64,9 +64,10 @@ configure Access for you. Do not expose the R2 bucket through a public URL.
 - **People:** The first verified email configured as the bootstrap manager
   creates the user directory. Managers invite, disable, and remove readers at
   `/users`. See [user management](docs/users.md).
-- **OPDS:** The catalog is available at `/opds`, but many e-reader apps cannot
-  complete Cloudflare Access sign-in. See [OPDS and Access](docs/opds.md#access-and-opds-clients)
-  before connecting a device.
+- **OPDS:** The catalog is available at `/opds`. Managers create scoped app
+  passwords for dedicated readers on the Users page. See
+  [OPDS and Access](docs/opds.md#access-and-opds-clients) before connecting a
+  device.
 
 Readlet stores book files and app state in the configured directory or R2
 bucket. Storage is not encrypted by Readlet. Reading changes made at the same

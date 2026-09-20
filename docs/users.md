@@ -23,7 +23,8 @@ They can:
 - invite an email as a member or manager;
 - change its display name or role;
 - disable and re-enable access;
-- clear a stale Cloudflare identity binding so the email can bind again; and
+- clear a stale Cloudflare identity binding so the email can bind again;
+- create, replace, or revoke an OPDS app password; and
 - delete the user and their reading state.
 
 Deletion first denies the user, then removes their reading state, then removes
@@ -37,6 +38,11 @@ requests resolve by `sub`, not by email. A changed verified email updates the
 same user without changing their reading-state key.
 
 Managers administer users but cannot switch into another user's reading state.
+
+An OPDS password is shown once and stored only as a salted hash. It authenticates
+that user on the catalog, cover, and download routes without creating a browser
+session. Replacing it immediately revokes the previous password; disabling or
+deleting the user also prevents it from authenticating.
 
 ## Reading on more than one device
 

@@ -30,6 +30,8 @@ catalog" field in its settings.
 ```
 /opds                    the root
 /opds/books              every book, 50 to a page
+/opds/recent             newest additions first
+/opds/updated            most recently changed first
 /opds/authors            one entry per author
 /opds/authors/<name>     that author's books
 /opds/subjects           one entry per subject
@@ -41,10 +43,13 @@ catalog" field in its settings.
 If none of your books record subjects, there's no **By subject** to open onto
 nothing. The same goes for series.
 
-**Searching** — add `?q=` to any book feed. That's the same parameter the
-shelf's search box uses, so you can paste a URL from one into the other.
+**Searching** — add `?q=` to any book feed. It matches titles, authors,
+publishers, subjects, series, identifiers, languages, and formats without
+distinguishing accents. That's the same parameter the shelf's search box uses,
+so you can paste a URL from one into the other.
 
-**Paging** — fifty books to a page, `?page=2` onwards.
+**Paging** — books and browse indexes are fifty entries to a page, `?page=2`
+onwards.
 
 ## What each book carries
 
@@ -59,22 +64,26 @@ Two things to expect:
 
 - **Covers are WebP.** Thorium and Panels render them. KOReader's OPDS browser
   is text-only and never asks for one.
-- **Every book is dated by when you last published the catalog**, because
-  nothing records when an individual book was added. That's also why there's no
-  **Recently added**.
+- Each book records when it first entered the library and when its files or
+  metadata last changed. A sync preserves both timestamps for an unchanged
+  book.
 
 A book with no downloadable file is left out of the feed rather than listed.
 
 ## Access and OPDS clients
 
-Readlet requires a verified Cloudflare Access token and an active user before
-serving the OPDS feed, its covers, or its download links.
-Dedicated e-reader apps generally cannot complete the browser-based email code
-sign-in, so they may fail to browse or download from that URL. Do not bypass
-Access for `/opds`, `/cover`, or `/download`: that would expose the library.
-Use the browser reader for now, or keep a separate library on a trusted local
-network for an OPDS client. See [what's missing](roadmap.md) for planned scoped
-tokens.
+Browser sessions use Cloudflare Access. Dedicated readers use a scoped app
+password instead:
+
+1. A manager opens **Users** and creates an OPDS password for an active user.
+2. Add the catalog URL, generated username, and password to the reader.
+3. Copy the password when it is shown. Readlet stores only its hash and cannot
+   display it again; replacing it revokes the previous password.
+
+The app password authorizes only the OPDS feed, covers, and downloads. On a
+Cloudflare deployment, configure path-specific Access bypass applications for
+`/opds`, `/opds/*`, `/cover/*`, and `/download/*` so those requests reach
+Readlet's own Basic authentication. Keep the rest of the Worker behind Access.
 
 `/opds` is disallowed in `robots.txt`, which keeps crawlers off it. That is not
 a security measure.
@@ -106,5 +115,6 @@ reflects your catalog, so an unpublished library gives an empty feed.
 entirely, so if you can see it on the web shelf but not in your reader, check
 that it published with a file.
 
-**Feeds seem stale.** A feed is cached for a minute. Wait it out, or pull to
-refresh if your client offers it.
+**Feeds seem stale.** A feed is privately cached by the reader for a minute and
+validated with an ETag. Wait it out, or pull to refresh if your client offers
+it.

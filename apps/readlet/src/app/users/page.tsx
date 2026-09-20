@@ -11,6 +11,7 @@ import {
   updateUser,
 } from "@/app/users/actions";
 import { DeleteButton } from "@/app/users/delete-button";
+import { OpdsCredentialControl } from "@/app/users/opds-credential";
 import { OG_BASE, SITE_DESCRIPTION } from "@/lib/site";
 import { getServices } from "@/services/container";
 import { pageUser } from "@/services/session";
@@ -115,6 +116,13 @@ export default async function UsersPage() {
                   deleting={user.status === "deleting"}
                 />
               </form>
+              {user.status !== "deleting" && (
+                <OpdsCredentialControl
+                  userId={user.id}
+                  enabled={user.status === "active"}
+                  configured={!!user.opdsCredential}
+                />
+              )}
             </div>
           </li>
         ))}

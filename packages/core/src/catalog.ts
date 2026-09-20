@@ -5,7 +5,7 @@
  */
 
 /** Bumped when the shape below changes incompatibly. */
-export const CATALOG_VERSION = 1;
+export const CATALOG_VERSION = 2;
 
 /** The catalog, at the root of the library. */
 export const CATALOG_FILE = "catalog.json";
@@ -24,12 +24,16 @@ export type BookFormat = {
 
 /**
  * A book, as recorded in its folder's `metadata.json` and copied into the
- * catalog. Everything here comes from the book's own package metadata, so no
+ * catalog. Descriptive fields come from the book's own package metadata, so no
  * part of the app has to infer meaning from a file name.
  */
 export type Book = {
   /** Folder name in the bucket, and the book's identity in URLs. */
   id: string;
+  /** First publication into this library, preserved across later syncs. */
+  addedAt: string;
+  /** Last time this book's files or metadata changed. */
+  modifiedAt: string;
   title: string;
   authors: string[];
   publisher?: string;
