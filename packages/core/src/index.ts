@@ -11,12 +11,15 @@ export {
 } from "./catalog.js";
 export type { ReadletConfig, StorageConfig } from "./config.js";
 export { CONFIG_FILES } from "./config.js";
+export {
+  CONTRIBUTED_BOOK_PREFIX,
+  publishContribution,
+} from "./contribution.js";
 export { parseJsonc, stripJsonComments } from "./jsonc.js";
 export { contentTypeFor } from "./mime.js";
 export type { PdfMetadata } from "./pdf.js";
 export { pdfDate, readPdfMetadata } from "./pdf.js";
 export type {
-  ProviderCapabilities,
   ProviderManifest,
   ProviderOption,
   Storage,
@@ -25,11 +28,7 @@ export type {
   StoredObject,
   WritableStorage,
 } from "./provider.js";
-export {
-  capabilitiesOf,
-  readOnlyStorage,
-  writableStorage,
-} from "./provider.js";
+export { readOnlyStorage, writableStorage } from "./provider.js";
 export type { ByteRange, RangeRequest } from "./range.js";
 export {
   clampRange,

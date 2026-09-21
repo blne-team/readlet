@@ -37,7 +37,7 @@ async function main(argv) {
   const written = await writeBooks(directory);
   console.log(`Wrote ${written.length} books to ${directory}`);
   console.log("\nPublish and serve them with:\n");
-  console.log("  pnpm sync --create");
+  console.log("  pnpm sync");
   console.log("  pnpm build && pnpm --filter @readlet/app start\n");
 }
 

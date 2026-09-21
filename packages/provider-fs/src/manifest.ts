@@ -5,8 +5,7 @@ import type { ProviderManifest } from "@readlet/core";
  * copied into place, so it can be inspected, backed up and moved with ordinary
  * tools — which is much of the point of keeping a library as plain files.
  *
- * Unlike R2 over wrangler, everything optional in the contract is available
- * here: a directory can be created, walked, and emptied.
+ * Publishing creates the directory when needed.
  */
 export const manifest: ProviderManifest = {
   id: "fs",
@@ -14,11 +13,6 @@ export const manifest: ProviderManifest = {
   summary:
     "Holds the library in a directory. Needs no account and no network — for " +
     "a machine on your own network, or a VPS you run the app on.",
-  capabilities: {
-    create: true,
-    list: true,
-    removeAll: true,
-  },
   options: [
     {
       key: "directory",
@@ -32,8 +26,6 @@ export const manifest: ProviderManifest = {
   notes: [
     "The app must run somewhere with a filesystem — `next start` on a VPS or " +
       "on your own machine — rather than on Workers, which has none.",
-    "Because a directory can be enumerated, --force clears the destination " +
-      "exactly rather than falling back to the published catalog.",
   ],
 };
 

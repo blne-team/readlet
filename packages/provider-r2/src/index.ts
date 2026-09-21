@@ -6,7 +6,7 @@
  * The two working halves are separate entry points:
  *
  *   @readlet/provider-r2/worker   Storage, over an R2 binding
- *   @readlet/provider-r2/node     StorageAdmin, over the wrangler CLI
+ *   @readlet/provider-r2/node     StorageAdmin, through the deployed Worker
  */
 
 export type {

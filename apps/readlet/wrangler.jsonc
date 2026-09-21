@@ -29,7 +29,7 @@
     {
       "binding": "BOOKS",
       "bucket_name": "books",
-      "jurisdiction": "eu"
+      "jurisdiction": ""
     }
   ],
   "durable_objects": {

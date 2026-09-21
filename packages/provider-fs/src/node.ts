@@ -4,7 +4,6 @@ import {
   link,
   mkdir,
   open,
-  readdir,
   readFile,
   rename,
   rm,
@@ -19,9 +18,8 @@ import {
   type ByteRange,
   clampRange,
   contentTypeFor,
-  isStateKey,
   normaliseEtag,
-  STATE_PREFIX,
+  publishContribution,
   type StorageAdmin,
   type StoredContent,
   type StoredObject,
@@ -274,40 +272,6 @@ export function createStorage(config: Config): WritableStorage {
   return new FsStorage(rootOf(config));
 }
 
-/** Every file under `directory`, as the keys they occupy. */
-async function walk(root: string): Promise<string[]> {
-  try {
-    const entries = await readdir(root, {
-      withFileTypes: true,
-      recursive: true,
-    });
-
-    return (
-      entries
-        .filter((entry) => entry.isFile())
-        .map((entry) =>
-          path
-            .relative(root, path.join(entry.parentPath, entry.name))
-            .split(path.sep)
-            .join("/"),
-        )
-        // Users and reading positions are the app's, not the library's. The
-        // sync tool removes whatever it can enumerate and did not just upload,
-        // so leaving them out of the walk is what keeps `--force` from taking
-        // everyone's bookmarks with it.
-        .filter((key) => !isStateKey(key))
-        .sort()
-    );
-  } catch (error) {
-    // A destination that does not exist yet holds nothing, which is not an
-    // error — the first publish creates it. One that cannot be read is a
-    // different matter: answering "empty" would have the sync tool report a
-    // destination it never managed to look at.
-    if (missing(error)) return [];
-    throw error;
-  }
-}
-
 /**
  * Removes a directory left empty by a deletion, and its parents, up to but
  * never including the library root. Without this, deleting a book would leave
@@ -329,12 +293,12 @@ async function pruneEmpty(root: string, from: string): Promise<void> {
 /**
  * The library as the sync CLI manages it.
  *
- * Every optional capability is implemented, because a directory supports all of
- * them: it can be created, walked and emptied. That makes `--force` exact here,
- * where R2 over wrangler can only clear what its last catalog recorded.
+ * Files are placed directly; the shared contribution publisher owns the
+ * catalog mutation and stale-object cleanup.
  */
 export function createAdmin(config: Config): StorageAdmin {
   const root = rootOf(config);
+  const storage = new FsStorage(root);
 
   function pathFor(key: string): string {
     const file = resolveKey(root, key);
@@ -344,14 +308,6 @@ export function createAdmin(config: Config): StorageAdmin {
 
   return {
     name: `filesystem → ${root}`,
-
-    async create() {
-      const stats = await stat(root).catch(() => null);
-      if (stats?.isDirectory()) return false;
-
-      await mkdir(root, { recursive: true });
-      return true;
-    },
 
     async read(key) {
       try {
@@ -376,26 +332,8 @@ export function createAdmin(config: Config): StorageAdmin {
       }
     },
 
-    async remove(key) {
-      const target = pathFor(key);
-      await rm(target, { force: true });
-      await pruneEmpty(root, target);
-    },
-
-    async list() {
-      return walk(root);
-    },
-
-    async removeAll() {
-      const keys = await walk(root);
-      const reserved = STATE_PREFIX.replace(/\/$/, "");
-
-      for (const entry of await readdir(root).catch(() => [])) {
-        if (entry === reserved) continue;
-        await rm(path.join(root, entry), { recursive: true, force: true });
-      }
-
-      return keys.length;
+    async publish(catalog) {
+      return publishContribution(storage, catalog);
     },
   };
 }

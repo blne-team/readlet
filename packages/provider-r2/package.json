@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "description": "Cloudflare R2 provider: a Worker binding to read, the wrangler CLI to publish",
+  "description": "Cloudflare R2 provider through a Worker binding",
   "author": "Murat Erkin Cicek",
   "repository": {
     "type": "git",
@@ -44,8 +44,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@readlet/core": "workspace:*",
-    "wrangler": "^4.123.0"
+    "@readlet/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24",

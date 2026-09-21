@@ -1,3 +1,4 @@
+import type { JWTPayload } from "jose";
 import {
   createRemoteJWKSet,
   errors,
@@ -20,6 +21,15 @@ export class AccessIdentityError extends Error {
   constructor(message = "A valid Cloudflare Access identity is required.") {
     super(message);
     this.name = "AccessIdentityError";
+  }
+}
+
+export class AccessServiceError extends Error {
+  constructor(
+    message = "A valid Cloudflare Access service token is required.",
+  ) {
+    super(message);
+    this.name = "AccessServiceError";
   }
 }
 
@@ -92,14 +102,8 @@ export async function accessIdentityForToken(
   config: Pick<AccessConfig, "teamDomain" | "audience">,
   key: JWTVerifyGetKey = signingKeys(config.teamDomain),
 ): Promise<AccessIdentity> {
-  if (!token) throw new AccessIdentityError();
-
   try {
-    const { payload } = await jwtVerify(token, key, {
-      issuer: config.teamDomain,
-      audience: config.audience,
-      algorithms: ["RS256"],
-    });
+    const payload = await verifiedPayload(token, config, key);
     const subject = typeof payload.sub === "string" ? payload.sub.trim() : "";
     const email = validatedEmail(payload.email);
     if (!subject || !email) {
@@ -107,20 +111,57 @@ export async function accessIdentityForToken(
     }
     return { subject, email };
   } catch (error) {
-    if (
-      error instanceof AccessIdentityError ||
-      error instanceof errors.JOSEAlgNotAllowed ||
-      error instanceof errors.JWSInvalid ||
-      error instanceof errors.JWSSignatureVerificationFailed ||
-      error instanceof errors.JWKSNoMatchingKey ||
-      error instanceof errors.JWTClaimValidationFailed ||
-      error instanceof errors.JWTExpired ||
-      error instanceof errors.JWTInvalid
-    ) {
+    if (error instanceof AccessIdentityError || isInvalidAccessToken(error)) {
       throw new AccessIdentityError();
     }
     throw error;
   }
+}
+
+async function verifiedPayload(
+  token: string | null,
+  config: Pick<AccessConfig, "teamDomain" | "audience">,
+  key: JWTVerifyGetKey,
+): Promise<JWTPayload> {
+  if (!token) throw new errors.JWTInvalid();
+  return (
+    await jwtVerify(token, key, {
+      issuer: config.teamDomain,
+      audience: config.audience,
+      algorithms: ["RS256"],
+    })
+  ).payload;
+}
+
+export async function accessServiceForToken(
+  token: string | null,
+  config: Pick<AccessConfig, "teamDomain" | "audience">,
+  key: JWTVerifyGetKey = signingKeys(config.teamDomain),
+): Promise<string> {
+  try {
+    const payload = await verifiedPayload(token, config, key);
+    const clientId =
+      typeof payload.common_name === "string" ? payload.common_name.trim() : "";
+    if (!clientId || payload.sub) throw new AccessServiceError();
+    return clientId;
+  } catch (error) {
+    if (error instanceof AccessServiceError || isInvalidAccessToken(error)) {
+      throw new AccessServiceError();
+    }
+    throw error;
+  }
+}
+
+function isInvalidAccessToken(error: unknown): boolean {
+  return (
+    error instanceof errors.JOSEAlgNotAllowed ||
+    error instanceof errors.JWSInvalid ||
+    error instanceof errors.JWSSignatureVerificationFailed ||
+    error instanceof errors.JWKSNoMatchingKey ||
+    error instanceof errors.JWTClaimValidationFailed ||
+    error instanceof errors.JWTExpired ||
+    error instanceof errors.JWTInvalid
+  );
 }
 
 export function accessToken(headers: Pick<Headers, "get">): string | null {

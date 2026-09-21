@@ -2,7 +2,7 @@
 # one-shot container that publishes books into it.
 #
 #   mkdir books && cp ~/some-book.epub books/
-#   docker compose run --rm sync --create
+#   docker compose run --rm sync
 #   docker compose up -d
 #
 # Configure apps/readlet/.env.local first. The Node server verifies Cloudflare
@@ -25,7 +25,7 @@ services:
     image: readlet
     profiles: [sync]
     # Arguments after `docker compose run --rm sync` are appended here, so
-    # `--create`, `--force` and `--dry-run` all work as they do locally.
+    # `--dry-run`, `--size` and `--full` work as they do locally.
     entrypoint: ["node", "packages/sync/dist/sync.js"]
     volumes:
       - ./books:/books:ro

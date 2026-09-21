@@ -13,8 +13,8 @@ of these are larger than they look.
 must supply its signed identity token and configure a bootstrap manager.
 Dedicated OPDS clients use revocable per-user app passwords instead.
 
-**Nothing is encrypted.** Your library is published in the clear, and object
-keys are slugified titles — so a listing of your storage names your shelf.
+**Nothing is encrypted.** Your library is published in the clear, and sync
+object keys contain slugified titles — so a listing of your storage names your shelf.
 Whoever holds the storage can read every book. With the filesystem provider you
 can put the directory on an encrypted volume today; see
 [encrypting your library](providers/fs.md#encrypting-your-library-at-rest).

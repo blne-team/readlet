@@ -3,7 +3,6 @@
  * Builds the library and publishes it to the bucket.
  *
  *   readlet-sync              build the library, then upload it
- *   readlet-sync --force      clear the bucket first
  *   readlet-sync --dry-run    build the tree, upload nothing
  *
  * Where books are read from, where the tree is built, and where it publishes to
@@ -36,11 +35,8 @@ import { BUILT_IN_IDS, createAdmin } from "./lib/providers.js";
 import { messageOf } from "./lib/util.js";
 
 type Options = {
-  force: boolean;
   dryRun: boolean;
-  local: boolean;
   full: boolean;
-  create: boolean;
   /** Left null so the configured value shows through. */
   provider: string | null;
   height: number | null;
@@ -48,10 +44,7 @@ type Options = {
 
 const USAGE = `usage: pnpm sync [options]
 
-  --force            clear the bucket before uploading
   --dry-run          build the library but publish nothing
-  --local            publish to the local (miniflare) bucket, for testing
-  --create           provision the destination first, if the provider can
   --provider NAME    which provider to publish through (built in: ${BUILT_IN_IDS.join(", ")};
                      anything else is imported as a package)
   --size N           cover thumbnail height in pixels
@@ -62,21 +55,15 @@ above override it for one run.`;
 
 function parseArgs(argv: readonly string[]): Options {
   const options: Options = {
-    force: false,
     dryRun: false,
-    local: false,
     full: false,
-    create: false,
     provider: null,
     height: null,
   };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    if (arg === "--force") options.force = true;
-    else if (arg === "--dry-run") options.dryRun = true;
-    else if (arg === "--local") options.local = true;
-    else if (arg === "--create") options.create = true;
+    if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--provider") options.provider = argv[++i] ?? "";
     else if (arg === "--size") options.height = Number(argv[++i]);
     else if (arg === "--full") options.full = true;
@@ -132,29 +119,13 @@ async function main(): Promise<void> {
   // immediately rather than after building the whole library.
   const admin = options.dryRun
     ? null
-    : await createAdmin(options.provider ?? config.storage.provider, {
-        ...config.storage,
-        local: options.local,
-      });
+    : await createAdmin(
+        options.provider ?? config.storage.provider,
+        config.storage,
+      );
 
   for (const warning of admin?.warnings ?? []) {
     console.warn(`warning: ${warning}\n`);
-  }
-
-  if (options.create) {
-    if (!admin) {
-      throw new Error("--create has nothing to do during a --dry-run");
-    }
-    if (!admin.create) {
-      throw new Error(
-        `${admin.name} cannot provision its destination; create it yourself first`,
-      );
-    }
-    log(
-      (await admin.create())
-        ? `Created the destination for ${admin.name}.`
-        : `Destination for ${admin.name} needed no creating.`,
-    );
   }
 
   const thumb = options.full ? null : await findThumbnailer();
@@ -168,16 +139,13 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // A forced publish is a clean build, so it deliberately does not inherit
-  // timestamps from the catalog it is about to replace.
-  const published =
-    admin && !options.force ? await admin.read(CATALOG_FILE) : null;
+  const published = admin ? await admin.read(CATALOG_FILE) : null;
   const previous = published
     ? (JSON.parse(new TextDecoder().decode(published)) as Catalog)
     : undefined;
   if (previous && previous.version !== CATALOG_VERSION) {
     throw new Error(
-      `The published catalog uses version ${previous.version}; version ${CATALOG_VERSION} is required. Re-run with --force to publish a clean catalog.`,
+      `The published catalog uses version ${previous.version}; version ${CATALOG_VERSION} is required.`,
     );
   }
 
@@ -210,7 +178,6 @@ async function main(): Promise<void> {
   if (!admin) throw new Error("no destination to publish through");
 
   const result = await syncLibrary(admin, config.outputDir, {
-    force: options.force,
     log,
   });
 
@@ -220,14 +187,6 @@ async function main(): Promise<void> {
       (result.failed ? `, ${result.failed} failed` : "") +
       ".",
   );
-
-  if (options.force && !result.exact) {
-    log(
-      "\nNote: this provider cannot enumerate its destination, so --force cleared\n" +
-        "only what the previously published catalog recorded. Objects put there\n" +
-        "by other means are untouched.",
-    );
-  }
 
   if (result.failed) process.exit(1);
 }

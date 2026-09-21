@@ -9,19 +9,20 @@ One folder per book, plus a generated catalog:
 
 ```
 library/
-  the-time-machine/
+  sync-the-time-machine/
     metadata.json          what the book says about itself
     cover.webp
-    the-time-machine.epub
-    the-time-machine.pdf   any number of formats
+    sync-the-time-machine.epub
+    sync-the-time-machine.pdf   any number of formats
   catalog.json             generated from every metadata.json
   .readlet/              written by the app, not the sync tool
     users.json
     progress/<user>.json
 ```
 
-Folder names are slugified titles, so a listing of your storage names your
-shelf.
+Folders contributed by `pnpm sync` use `sync-` followed by the slugified title.
+The prefix keeps them distinct from books imported through the app, so either
+publishing path can update its own books without deleting the other's.
 
 ## metadata.json
 
@@ -38,15 +39,12 @@ each format stores this and how far it's trusted, see
 ## catalog.json
 
 Generated from every `metadata.json` in the library. Catalog format version 2
-requires the per-book timestamps used by OPDS recent and updated feeds. Publish
-once with `pnpm sync --force` when replacing a version 1 catalog; this is a
-clean rebuild rather than a migration.
+requires the per-book timestamps used by OPDS recent and updated feeds.
 
 ## .readlet/
 
 Your users and reading positions. This is the only thing in the library the
-sync tool didn't put there, and it never removes it — not on a normal run, not
-with `--force`.
+sync tool didn't put there, and it never removes it.
 
 ## What to back up
 

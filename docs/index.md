@@ -48,7 +48,7 @@ The shortest route.
 
 ```bash
 mkdir books && cp ~/Downloads/*.epub books/
-docker compose run --rm sync --create
+docker compose run --rm sync
 docker compose up -d
 ```
 
@@ -72,7 +72,7 @@ the three identity variables described in [the Access setup](providers/r2.md#con
 
 ```bash
 mkdir books && cp ~/Downloads/*.epub books/
-pnpm sync --create
+pnpm sync
 pnpm build
 pnpm --filter @readlet/app start
 ```
@@ -91,7 +91,7 @@ pnpm run deploy
 
 Two checked-in files carry the bucket and Worker name, and you need to edit both
 — see [the R2 provider](providers/r2.md). Configure Access and the R2 budget's
-sync credentials there, then run `pnpm sync --create`.
+sync credentials there, then run `pnpm sync`.
 
 ## What you get
 
@@ -122,8 +122,8 @@ your storage and you've lost an `pnpm sync`, not a collection.
 Access application token and admits only active users from its own directory.
 Configure the first manager before opening the Worker URL.
 
-**Nothing is encrypted.** Your library is stored in the clear, and object keys
-are slugified titles — a listing of your storage names your shelf.
+**Nothing is encrypted.** Your library is stored in the clear, and sync object
+keys contain slugified titles — a listing of your storage names your shelf.
 
 **Two devices reading as one user at once is last-write-wins.**
 

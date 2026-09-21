@@ -62,8 +62,8 @@ Use `setServices()` to substitute fakes in tests.
 Three constraints you need to respect when adding to this layer:
 
 - **`Storage` has no `list`.** The catalog enumerates the library, so no request
-  can discover books by walking the bucket. Enumeration lives on `StorageAdmin`,
-  which never runs in the app.
+  can discover books by walking the bucket. Sync replaces only its named
+  contribution instead of enumerating storage.
 - **Library management trusts the catalog, never a browser-supplied key.** A
   manager names a book id; `LibraryManagerService` derives its metadata, cover,
   and format keys from the stored catalog. Interrupted deletions remain in the

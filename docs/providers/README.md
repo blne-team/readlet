@@ -25,7 +25,7 @@ Name it in `readlet.config.json`:
 ```
 
 ```jsonc
-{ "storage": { "provider": "r2", "bucket": "books" } }
+{ "storage": { "provider": "r2", "endpoint": "https://readlet.example.com/api/library/sync" } }
 ```
 
 Everything under `storage` other than `provider` belongs to that provider. See
@@ -37,15 +37,8 @@ its page for what it accepts.
 | --- | --- | --- |
 | serve books | yes | yes |
 | resume an interrupted download | yes | yes |
-| create the destination for you (`--create`) | yes | yes |
-| `--force` clears the destination completely | no — see below | yes |
 | the app can write users and positions | yes | yes |
-| credentials to set up | a `wrangler login` | none |
-
-On R2, `--force` removes what the last catalog recorded rather than everything
-in the bucket, because wrangler can't list objects. If you've put things in that
-bucket by other means, `--force` won't touch them. The sync tool says which
-guarantee it gave you.
+| sync credentials to set up | a Cloudflare Access service token | none |
 
 ## Using a third-party provider
 

@@ -15,7 +15,7 @@ Point the config at a directory:
 Then publish and run:
 
 ```bash
-pnpm sync --create   # creates shelf-data/ and publishes into it
+pnpm sync            # creates shelf-data/ and publishes into it
 pnpm build
 pnpm --filter @readlet/app start
 ```

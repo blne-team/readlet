@@ -15,6 +15,7 @@ import {
   CATALOG_FILE,
   CATALOG_VERSION,
   type Catalog,
+  CONTRIBUTED_BOOK_PREFIX,
   METADATA_FILE,
 } from "@readlet/core";
 import { BOOK_EXTENSIONS } from "./config.js";
@@ -116,7 +117,7 @@ async function publishBook(
 
   // A slug from the title reads well when browsing the bucket directly, which
   // is much of the point of keeping the library as plain files.
-  let id = slugify(title);
+  let id = `${CONTRIBUTED_BOOK_PREFIX}${slugify(title)}`;
   if (ids.has(id)) {
     let n = 2;
     while (ids.has(`${id}-${n}`)) n++;

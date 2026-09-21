@@ -1,12 +1,5 @@
 import assert from "node:assert/strict";
-import {
-  chmod,
-  mkdir,
-  mkdtemp,
-  readdir,
-  readFile,
-  writeFile,
-} from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -190,61 +183,6 @@ async function published() {
   };
 }
 
-test("enumeration reports the library and not the app's own state", async () => {
-  const { admin } = await published();
-
-  // `list` is what the sync tool may remove. Anything that reports state keys
-  // will have `--force` delete everyone's bookmarks.
-  assert.deepEqual(await admin.list(), [
-    "a-book/a-book.epub",
-    "a-book/metadata.json",
-    "catalog.json",
-  ]);
-});
-
-test("emptying the destination leaves users and positions alone", async () => {
-  const { directory, admin } = await published();
-
-  const removed = await admin.removeAll();
-
-  // It reports what it removed of the library.
-  assert.equal(removed, 3);
-  assert.deepEqual((await readdir(directory)).sort(), [".readlet"]);
-  // And the state is untouched, not merely present.
-  assert.equal(
-    await readFile(
-      path.join(directory, ".readlet/progress/reader.json"),
-      "utf8",
-    ),
-    '{"books":{}}',
-  );
-});
-
-test("a destination that does not exist yet holds nothing", async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "readlet-fs-"));
-  const directory = path.join(root, "not-created-yet");
-  const admin = createAdmin({ directory, projectRoot: root });
-
-  // Not an error: the first publish creates it.
-  assert.deepEqual(await admin.list(), []);
-  assert.equal(await admin.create(), true);
-  // Idempotent, so a second `--create` is not a failure.
-  assert.equal(await admin.create(), false);
-});
-
-test("deleting the last book in a folder takes the folder with it", async () => {
-  const { directory, admin } = await published();
-
-  await admin.remove("a-book/metadata.json");
-  await admin.remove("a-book/a-book.epub");
-
-  // Otherwise a removed book would leave its folder behind for good.
-  assert.deepEqual((await readdir(directory)).sort(), [
-    ".readlet",
-    "catalog.json",
-  ]);
-});
-
 test("a key that escapes the library is refused, not tidied up", async () => {
   const { admin } = await published();
 
@@ -253,8 +191,6 @@ test("a key that escapes the library is refused, not tidied up", async () => {
   // publish that silently put a file somewhere else would be worse than a
   // failed one.
   await assert.rejects(admin.put("../escaped.epub", "/dev/null", "text/plain"));
-  await assert.rejects(admin.remove("../../something"));
-
   // Reading refuses too. It used to answer "nothing there", because the catch
   // that turns a missing file into null swallowed this as well — the same catch
   // that was turning an unreadable file into an absent one. Now only a failure

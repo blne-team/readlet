@@ -29,12 +29,12 @@ Node and pnpm versions are covered in step 3.
 | File | Set these values |
 | --- | --- |
 | `apps/readlet/wrangler.jsonc` | `name` is the Worker name; `r2_buckets[0].bucket_name` is your R2 bucket; keep its binding name `BOOKS`. Set `jurisdiction` only if the bucket has that jurisdiction. The `services[0].service` value must match the Worker name. |
-| `readlet.config.json` | `storage.provider` stays `r2`; `storage.bucket` must name the same bucket. Set `storage.jurisdiction` to the same jurisdiction, or remove it from both files for a bucket without a jurisdiction restriction. Keep `storage.worker` as `apps/readlet`. |
+| `readlet.config.json` | `storage.provider` stays `r2`; set `storage.endpoint` to `https://<your-protected-readlet-host>/api/library/sync`. |
 
 The checked-in example uses Worker `readlet`, bucket `books`, and the `eu`
 jurisdiction. If you use those names, make sure they belong to **your**
-Cloudflare account. The sync tool checks that its bucket and the Worker's bucket
-agree before uploading.
+Cloudflare account. Sync writes through the Worker's `BOOKS` binding, so the
+bucket is configured only in `wrangler.jsonc`.
 
 For the first deployment, set `workers_dev` to `false` in `wrangler.jsonc`, keep
 `preview_urls` set to `false`, and leave routes and custom domains unset. Commit
@@ -47,10 +47,10 @@ and both rate-limit bindings. The app requires those bindings in production.
 ## 2. Create the private R2 bucket
 
 In the Cloudflare dashboard, open **R2 Object Storage → Create bucket**. Enter
-the exact bucket name from the two configuration files. The checked-in `eu`
+the exact bucket name from `apps/readlet/wrangler.jsonc`. The checked-in `eu`
 setting means you must choose **Location → Specify jurisdiction → European
 Union**. If you instead choose an ordinary bucket, remove `jurisdiction` from
-both files before deploying or publishing. A location hint, such as Western
+that file before deploying. A location hint, such as Western
 Europe, is **not** the EU jurisdiction. Cloudflare cannot change a bucket's
 jurisdiction after creation. [Cloudflare's data-location
 guide](https://developers.cloudflare.com/r2/reference/data-location/) explains
@@ -202,30 +202,38 @@ describes the dashboard flow.
 This step is separate from deploying the framework. It requires a local
 checkout if you use Readlet's `pnpm sync` tool to prepare and publish your own
 library. Put your EPUBs and PDFs in the local `books/` folder. It is
-Git-ignored: a GitHub push deploys the framework, not your library. On your own
-machine, run from the repository root:
+Git-ignored: a GitHub push deploys the framework, not your library. The
+repository's GitHub Actions workflow also performs verification only; it never
+deploys the Worker or runs sync.
+
+Set `storage.endpoint` in `readlet.config.json` to
+`https://<your-protected-readlet-host>/api/library/sync`.
+
+Create the credentials used only by sync:
+
+1. In Cloudflare Zero Trust, create an Access service token and add a **Service
+   Auth** policy allowing it through the Access application protecting Readlet.
+2. Copy `.env.sync.example` to the ignored `.env.sync` file. Put the service
+   token's ID and secret in `READLET_SYNC_ACCESS_CLIENT_ID` and
+   `READLET_SYNC_ACCESS_CLIENT_SECRET`.
+
+Neither `.env.sync` nor these values belong in `apps/readlet/.env.local` or
+Workers Builds' build variables. `.env.sync` is read only by the local
+publishing command.
+
+On your own machine, run from the repository root:
 
 ```bash
 pnpm install
-pnpm --filter @readlet/app exec wrangler login
-pnpm sync --dry-run
-pnpm sync
+node --env-file=.env.sync "$(command -v pnpm)" sync --dry-run
+node --env-file=.env.sync "$(command -v pnpm)" sync
 ```
 
-`wrangler login` uses browser authentication, so this route does not need a
-manually supplied API token. If you prefer your existing ignored
-`.wrangler-auth` file, load it **only** for the local sync command:
-
-```bash
-node --env-file=.wrangler-auth "$(command -v pnpm)" sync
-```
-
-Because the bucket was created in the dashboard, use `pnpm sync`, not
-`pnpm sync --create`; `--create` is for creating the bucket through Wrangler.
-The sync tool builds `library/`, uploads the catalog, books and covers, and
-maintains Readlet's published book list. It does not remove `.readlet/` user or
-reading state. See [Publishing a library](docs/publishing.md) for later updates
-and `--force` behavior.
+The sync tool sends book objects through the protected Worker and publishes its
+catalog contribution only after every upload succeeds. Books added through
+`/manage` remain in the catalog. Removing a file from `books/` removes only the
+matching sync-owned book; user and reading state under `.readlet/` remains.
+See [Publishing a library](docs/publishing.md) for later updates.
 
 ## 6. Check the deployment
 

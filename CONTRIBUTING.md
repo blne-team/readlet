@@ -75,8 +75,8 @@ so on the pull request.
 
 Prefer pinning a promise over an implementation. The tests worth having are the
 ones a future change can quietly break — that an entry costs one ranged read,
-that `--force` can't take everyone's bookmarks with it, that a range a provider
-declined comes back as a whole object.
+that a sync contribution can't replace a browser import, that a range a
+provider declined comes back as a whole object.
 
 Two workarounds you'll run into: `apps/readlet/test/lib/alias.mjs` registers a
 resolver because Node doesn't know the app's `@/` path alias, and
@@ -97,15 +97,15 @@ implement.** `/worker` for workerd, `/node` for Node. Never let a Node-only
 import be reachable from a `/worker` entry point — CI bundles the Worker partly
 to catch that.
 
-**Declare only the capabilities you have.** `create`, `list` and `removeAll` are
-optional. Leave one undefined rather than half-implementing it: the sync tool
-asks with `capabilitiesOf()` and degrades honestly, and `--force` tells the user
-which guarantee it actually gave them.
+**Publish one contribution, not a storage mirror.** Upload every book object
+first, then make `publish` the single catalog publication point. It must replace
+only `sync-` books, preserve books imported by the app, and remove stale sync
+objects after the catalog commits. `publishContribution()` in `@readlet/core`
+implements this for providers that expose a `WritableStorage` directly.
 
-**Keep `.readlet/` out of enumeration.** It holds profiles and reading
-positions. `list` reports what the sync tool may remove, so if you report state
-keys, `--force` will delete everyone's bookmarks. Use `isStateKey()` from
-`@readlet/core`.
+**Keep application state out of publishing.** `.readlet/` holds users, reading
+positions, and annotations. A provider's admin face works only with the
+contribution named by its catalog; it never enumerates or clears storage.
 
 **Serve a range or decline it, but say which.** `read` takes an optional
 `range`. Honour it and set `range` on what you return, naming the bytes the body

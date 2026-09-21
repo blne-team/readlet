@@ -1,4 +1,6 @@
-name: CI
+# Verification only. Cloudflare Workers Builds, configured outside GitHub
+# Actions, deploys the Worker; publishing books is a separate local command.
+name: CI (no deployment)
 
 on:
   push:

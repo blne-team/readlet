@@ -7,8 +7,8 @@
  * tool did not put there, and so the only thing it must never take away.
  *
  * That is what {@link STATE_PREFIX} is for. Everything here lives under one
- * reserved folder, and providers exclude it from enumeration, so a `--force`
- * that empties the destination cannot also empty everyone's bookmarks.
+ * reserved folder, outside every book contribution, so publishing cannot
+ * replace everyone's bookmarks.
  */
 
 /** Bumped when either shape below changes incompatibly. */

@@ -43,12 +43,12 @@ running the Node server without Docker.
 
 ## Deploy to Cloudflare
 
-Readlet can run as a Worker with a private R2 bucket. Set your Worker and bucket
-names in `apps/readlet/wrangler.jsonc` and `readlet.config.json`, create the
-bucket, and configure Cloudflare Access and the three identity variables above
-as Worker runtime variables. Follow [the deployment guide](DEPLOYMENT.md) for
-the Worker, bucket, and Access setup. Once the bootstrap manager signs in, add
-books at `/manage`.
+Readlet can run as a Worker with a private R2 bucket. Set the Worker and bucket
+names in `apps/readlet/wrangler.jsonc`, set the publishing endpoint in
+`readlet.config.json`, and configure Cloudflare Access and the three identity
+variables above as Worker runtime variables. Follow [the deployment
+guide](DEPLOYMENT.md) for the Worker, bucket, and Access setup. Once the
+bootstrap manager signs in, add books at `/manage`.
 
 The checked-in configuration is an R2 example. It does not create a bucket or
 configure Access for you. Do not expose the R2 bucket through a public URL.

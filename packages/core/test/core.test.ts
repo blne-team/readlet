@@ -4,7 +4,6 @@ import {
   bookKey,
   bookObjectKeys,
   bytesSource,
-  capabilitiesOf,
   contentTypeFor,
   isStateKey,
   isUserId,
@@ -71,8 +70,7 @@ test("state lives under one reserved prefix", () => {
   assert.equal(isStateKey(LIBRARY_OPERATIONS_FILE), true);
 
   // Everything the sync tool publishes is not state, and must not be mistaken
-  // for it — a provider excludes state from enumeration, and over-matching here
-  // would hide real books from `--force`.
+  // for app-owned data.
   assert.equal(isStateKey("catalog.json"), false);
   assert.equal(isStateKey("a-book/metadata.json"), false);
   assert.equal(isStateKey("a-book/a-book.epub"), false);
@@ -267,32 +265,6 @@ test("read-only storage passes read options through", async () => {
     },
     { key: "a.epub", offset: 5, length: 15 },
   ]);
-});
-
-test("an admin's capabilities are asked of the instance", () => {
-  const base = {
-    name: "somewhere",
-    read: async () => null,
-    put: async () => {},
-    remove: async () => {},
-  };
-
-  // What the wrangler-backed R2 admin looks like: it cannot enumerate.
-  assert.deepEqual(capabilitiesOf(base), {
-    create: false,
-    list: false,
-    removeAll: false,
-  });
-
-  assert.deepEqual(
-    capabilitiesOf({
-      ...base,
-      create: async () => true,
-      list: async () => [],
-      removeAll: async () => 0,
-    }),
-    { create: true, list: true, removeAll: true },
-  );
 });
 
 test("a source over bytes clamps rather than refusing an over-read", async () => {

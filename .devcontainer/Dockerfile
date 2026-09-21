@@ -7,7 +7,8 @@ ARG USER_GID
 
 RUN apt-get update \
     && apt-get install --no-install-recommends --yes \
-      ca-certificates curl git jq less openssh-client procps ripgrep sudo tmux vim \
+      ca-certificates curl git jq less openssh-client poppler-utils procps \
+      ripgrep sudo tmux vim webp \
     && rm -rf /var/lib/apt/lists/* \
     && npm install --global pnpm@10.34.5
 

@@ -34,6 +34,7 @@ export function userDirectory(): Record<string, string> {
 export async function startAccessFixture(): Promise<{
   token: string;
   tokenFor(subject: string, email: string): Promise<string>;
+  serviceTokenFor(clientId: string): Promise<string>;
   stop(): void;
 }> {
   const { privateKey, publicKey } = await generateKeyPair("RS256");
@@ -52,6 +53,15 @@ export async function startAccessFixture(): Promise<{
       .setExpirationTime("1h")
       .sign(privateKey);
   const token = await tokenFor(TEST_SUBJECT, TEST_USER.email);
+  const serviceTokenFor = (clientId: string) =>
+    new SignJWT({ common_name: clientId })
+      .setProtectedHeader({ alg: "RS256", kid: jwk.kid })
+      .setIssuer(TEAM_DOMAIN)
+      .setAudience(AUDIENCE)
+      .setSubject("")
+      .setIssuedAt()
+      .setExpirationTime("1h")
+      .sign(privateKey);
 
   const previousFetch = globalThis.fetch;
   const previousDomain = process.env.READLET_ACCESS_TEAM_DOMAIN;
@@ -72,6 +82,7 @@ export async function startAccessFixture(): Promise<{
   return {
     token,
     tokenFor,
+    serviceTokenFor,
     stop() {
       globalThis.fetch = previousFetch;
       restore("READLET_ACCESS_TEAM_DOMAIN", previousDomain);

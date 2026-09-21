@@ -1,7 +1,6 @@
-import { readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import {
-  bookObjectKeys,
   CATALOG_FILE,
   type Catalog,
   contentTypeFor,
@@ -17,16 +16,9 @@ export type SyncResult = {
   uploaded: number;
   removed: number;
   failed: number;
-  /**
-   * Whether the removals were exact. False where the provider cannot enumerate
-   * its destination, so what was cleared came from the last published catalog
-   * rather than from looking.
-   */
-  exact: boolean;
 };
 
 export type SyncOptions = {
-  force?: boolean;
   log: (message: string) => void;
 };
 
@@ -41,7 +33,7 @@ async function localKeys(outDir: string): Promise<Upload[]> {
   });
 
   return entries
-    .filter((entry) => entry.isFile())
+    .filter((entry) => entry.isFile() && entry.name !== CATALOG_FILE)
     .map((entry) => {
       const file = path.join(entry.parentPath, entry.name);
       return {
@@ -54,83 +46,20 @@ async function localKeys(outDir: string): Promise<Upload[]> {
 }
 
 /**
- * What the destination holds now.
- *
- * Providers that can enumerate say so directly. For those that cannot, the
- * catalog published last time describes everything this script wrote, which is
- * exact for a destination only this script manages — and blind to anything put
- * there by other means.
- */
-async function remoteKeys(
-  admin: StorageAdmin,
-): Promise<{ keys: string[]; exact: boolean }> {
-  if (admin.list) {
-    return { keys: await admin.list(), exact: true };
-  }
-
-  const raw = await admin.read(CATALOG_FILE);
-  if (!raw) return { keys: [], exact: false };
-
-  try {
-    const catalog = JSON.parse(new TextDecoder().decode(raw)) as Catalog;
-    const keys = [CATALOG_FILE];
-    for (const book of catalog.books ?? []) {
-      keys.push(...bookObjectKeys(book));
-    }
-    return { keys, exact: false };
-  } catch {
-    return { keys: [], exact: false };
-  }
-}
-
-/**
- * Publishes the built tree.
- *
- * Normally every file is uploaded and anything the previous catalog listed but
- * this one does not is removed, so deleting a book locally deletes it remotely.
- * With `force`, the previous contents are cleared first — a clean slate for
- * when the destination has drifted out of step.
- *
- * How exact that clean slate is depends on the provider. One that can wipe its
- * destination does; one that cannot falls back to deleting the keys it knows
- * about, and says so rather than implying more than it did.
+ * Uploads every book object, publishes the contribution as one final catalog
+ * mutation, then lets the provider remove objects from the previous
+ * contribution. Books created by the running app are never part of that set.
  */
 export async function syncLibrary(
   admin: StorageAdmin,
   outDir: string,
-  { force = false, log }: SyncOptions,
+  { log }: SyncOptions,
 ): Promise<SyncResult> {
   const concurrency = admin.concurrency ?? DEFAULT_CONCURRENCY;
   const desired = await localKeys(outDir);
-
-  let removed = 0;
-  let exact: boolean;
-
-  if (force && admin.removeAll) {
-    log(`Clearing everything in ${admin.name}…`);
-    removed = await admin.removeAll();
-    exact = true;
-  } else {
-    const { keys: previous, exact: enumerated } = await remoteKeys(admin);
-    exact = enumerated;
-
-    const wanted = new Set(desired.map((entry) => entry.key));
-    const stale = previous.filter((key) => force || !wanted.has(key));
-    removed = stale.length;
-
-    if (stale.length) {
-      log(
-        force
-          ? `Clearing ${stale.length} objects${exact ? "" : " recorded in the published catalog"}…`
-          : `Removing ${stale.length} objects no longer in the library…`,
-      );
-      await pool(stale, concurrency, (key) =>
-        retry(() => admin.remove(key)).catch((error: unknown) => {
-          log(`  warn   could not delete ${key} (${messageOf(error).trim()})`);
-        }),
-      );
-    }
-  }
+  const catalog = JSON.parse(
+    await readFile(path.join(outDir, CATALOG_FILE), "utf8"),
+  ) as Catalog;
 
   log(`Uploading ${desired.length} objects to ${admin.name}…`);
   let done = 0;
@@ -147,5 +76,11 @@ export async function syncLibrary(
     }
   });
 
-  return { uploaded: done, removed, failed, exact };
+  if (failed) {
+    log("Catalog unchanged because one or more book objects failed to upload.");
+    return { uploaded: done, removed: 0, failed };
+  }
+
+  const removed = await admin.publish(catalog);
+  return { uploaded: done + 1, removed, failed };
 }

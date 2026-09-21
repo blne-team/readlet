@@ -5,6 +5,7 @@ import {
   CATALOG_VERSION,
   type Catalog,
   LIBRARY_OPERATIONS_FILE,
+  publishContribution as publishSyncContribution,
   rangedSource,
   type Storage,
   type User,
@@ -263,6 +264,16 @@ export class LibraryManagerService {
     return Object.values((await this.operations()).value.deletions).sort(
       (left, right) => left.requestedAt.localeCompare(right.requestedAt),
     );
+  }
+
+  /** Replaces only the books owned by pnpm sync. */
+  async publishContribution(value: unknown): Promise<number> {
+    const target = writableStorage(this.storage);
+    if (!target) throw new ReadOnlyLibraryError();
+
+    const removed = await publishSyncContribution(target, value);
+    await this.catalog.invalidate();
+    return removed;
   }
 
   /**

@@ -13,12 +13,10 @@ Readlet follows the file page to the downloadable file. A URL starting with
 URL imports need the file server to provide its size in the `Content-Length`
 response header.
 
-The older `pnpm sync` workflow below still rebuilds the destination from a
-local folder. Do not run it against a library with browser-imported books: it
-will remove books absent from its local input folder.
-
-The sync tool reads a folder of books, builds a library from them, and uploads
-it to wherever you keep it.
+`pnpm sync` contributes a local folder to the same catalog. It owns books whose
+ids begin with `sync-`; books added through `/manage` are preserved. With the
+R2 provider, each uploaded object must fit the Cloudflare Worker request body
+limit because sync uses the same Worker path.
 
 ## Publish your books
 
@@ -33,11 +31,10 @@ generated titles would otherwise publish alongside them and be tedious to tell
 apart. (`pnpm demo` refuses a folder that already has books in it, so the
 other order is safe.)
 
-That builds `library/` and uploads it. Two variations you'll want:
+That builds `library/` and uploads it. Use a dry run to inspect the result:
 
 ```bash
 pnpm sync --dry-run   # build it, upload nothing — check the result first
-pnpm sync --force     # clear the destination, then upload
 ```
 
 Run `--dry-run` the first time. It writes `library/` and prints what each book
@@ -55,10 +52,7 @@ Create `readlet.config.json` in the project root:
   "coverHeight": 240,
   "storage": {
     "provider": "r2",
-    "bucket": "books",
-    "jurisdiction": "eu",
-    "worker": "apps/readlet",
-    "budgetUrl": "https://readlet.example.com/api/r2-usage"
+    "endpoint": "https://readlet.example.com/api/library/sync"
   }
 }
 ```
@@ -84,25 +78,18 @@ run it from a subdirectory.
 
 | flag | what it does |
 | --- | --- |
-| `--force` | clear the destination before uploading |
 | `--dry-run` | build the tree, publish nothing |
-| `--local` | publish to the local miniflare bucket, for testing |
-| `--create` | create the destination first, if your provider can |
 | `--provider NAME` | publish through a different provider than the config names |
 | `--size N` | cover thumbnail height in pixels |
 | `--full` | keep full-size covers instead of thumbnailing them |
 
 ## Adding and removing books
 
-Add a book to `books/` and run `pnpm sync` again. Delete one and run it
-again, and it disappears from your shelf too — a normal run removes anything the
-previous catalog listed that the new one doesn't.
+Add a book to `books/` and run `pnpm sync` again. Delete one and run it again,
+and that sync-owned book disappears from your shelf. Books imported through
+`/manage` remain untouched.
 
-Use `--force` when your destination has drifted out of step with what you expect
-— for instance after an upload failed halfway. It clears first instead of
-comparing.
-
-Neither one touches your users or reading positions. Those live in
+Sync never touches your users or reading positions. Those live in
 `.readlet/`, and nothing the sync tool does will remove them.
 
 ## Give one book several formats
