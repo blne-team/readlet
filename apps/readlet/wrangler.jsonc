@@ -28,8 +28,7 @@
   "r2_buckets": [
     {
       "binding": "BOOKS",
-      "bucket_name": "books",
-      "jurisdiction": ""
+      "bucket_name": "books"
     }
   ],
   "durable_objects": {
