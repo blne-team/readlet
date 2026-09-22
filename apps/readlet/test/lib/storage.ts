@@ -168,6 +168,14 @@ export function memoryStorage(
       held.delete(key);
       revisions.set(key, (revisions.get(key) ?? 0) + 1);
     };
+    storage.eraseAll = async () => {
+      refuse("eraseAll");
+      for (const key of held.keys()) {
+        writes.push({ key, removed: true });
+        revisions.set(key, (revisions.get(key) ?? 0) + 1);
+      }
+      held.clear();
+    };
   }
 
   return {

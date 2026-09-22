@@ -46,6 +46,12 @@ export type R2PutOptionsLike = {
   onlyIf?: { etagMatches?: string; etagDoesNotMatch?: string };
 };
 
+export type R2ListResultLike = {
+  objects: R2ObjectLike[];
+  truncated: boolean;
+  cursor?: string;
+};
+
 export type R2BucketLike = {
   head(key: string): Promise<R2ObjectLike | null>;
   get(
@@ -63,7 +69,11 @@ export type R2BucketLike = {
     value: ReadableStream<Uint8Array> | ArrayBuffer | ArrayBufferView,
     options?: R2PutOptionsLike,
   ): Promise<unknown>;
-  delete(key: string): Promise<void>;
+  list(options?: {
+    limit?: number;
+    cursor?: string;
+  }): Promise<R2ListResultLike>;
+  delete(keys: string | string[]): Promise<void>;
 };
 
 function describe(object: R2ObjectLike): StoredObject {
@@ -223,6 +233,19 @@ class R2Storage implements WritableStorage {
 
   async remove(key: string): Promise<void> {
     await this.bucket.delete(key);
+  }
+
+  async eraseAll(): Promise<void> {
+    // Delete one full page, then list from the beginning again. Reusing a
+    // cursor produced before those deletions can skip objects because the
+    // collection it points into has changed underneath it.
+    while (true) {
+      await this.budget.reserve({ classA: 1 });
+      const page = await this.bucket.list({ limit: 1_000 });
+      const keys = page.objects.map(({ key }) => key);
+      if (keys.length === 0) return;
+      await this.bucket.delete(keys);
+    }
   }
 }
 

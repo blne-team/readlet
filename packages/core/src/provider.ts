@@ -109,6 +109,16 @@ export interface Storage {
   /** Deletes one object. Optional alongside {@link Storage.write}. */
   remove?(key: string): Promise<void>;
 
+  /**
+   * Permanently removes every object owned by this storage destination.
+   *
+   * Optional and deliberately separate from ordinary deletion: most request
+   * paths must never enumerate or empty a library. Providers expose this only
+   * when they can perform a complete factory reset without guessing keys from
+   * the catalog.
+   */
+  eraseAll?(): Promise<void>;
+
   /** Streams a published book without buffering it in the application. */
   putStream?(
     key: string,
@@ -130,6 +140,11 @@ export interface WritableStorage extends Storage {
   remove(key: string): Promise<void>;
 }
 
+/** Writable storage that can perform a complete, provider-owned reset. */
+export interface ResettableStorage extends WritableStorage {
+  eraseAll(): Promise<void>;
+}
+
 /**
  * The same storage, narrowed, or null where the provider cannot write.
  *
@@ -142,6 +157,14 @@ export function writableStorage(storage: Storage): WritableStorage | null {
     typeof storage.writeIf === "function" &&
     typeof storage.remove === "function"
     ? (storage as WritableStorage)
+    : null;
+}
+
+/** The same storage, narrowed only when complete erasure is supported. */
+export function resettableStorage(storage: Storage): ResettableStorage | null {
+  const writable = writableStorage(storage);
+  return writable && typeof storage.eraseAll === "function"
+    ? (storage as ResettableStorage)
     : null;
 }
 

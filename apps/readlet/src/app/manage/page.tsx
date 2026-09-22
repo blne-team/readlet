@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BookCover } from "@/app/book-cover";
-import { deleteBook } from "@/app/manage/actions";
+import { deleteBook, resetLibrary } from "@/app/manage/actions";
 import { DeleteBookButton } from "@/app/manage/delete-book-button";
 import { ImportBook } from "@/app/manage/import-book";
 import { PendingDeletionRefresh } from "@/app/manage/pending-deletion-refresh";
+import { ResetLibraryButton } from "@/app/manage/reset-library-button";
 import { ManagementHeader } from "@/app/management-header";
+import { INPUT } from "@/app/ui";
 import { OG_BASE, SITE_DESCRIPTION } from "@/lib/site";
-import { getServices } from "@/services/container";
+import { accessConfig } from "@/services/access-identity";
+import { getServices, storageProvider } from "@/services/container";
 import { pageUser } from "@/services/session";
 
 export const metadata: Metadata = {
@@ -32,6 +35,10 @@ export default async function ManagePage() {
   ]);
   const pendingIds = new Set(pending.map(({ book }) => book.id));
   const available = books.filter((book) => !pendingIds.has(book.id));
+  const canReset =
+    storageProvider() === "r2" &&
+    library.resettable &&
+    actor.email === accessConfig().bootstrapManagerEmail;
 
   return (
     <main className="page-safe mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:py-16">
@@ -116,6 +123,32 @@ export default async function ManagePage() {
           </ul>
         )}
       </section>
+
+      {canReset && (
+        <section className="mt-14 border-t border-red-500/25 pt-8">
+          <h2 className="text-xl font-semibold text-red-700 dark:text-red-400">
+            Reset Cloudflare library
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-secondary">
+            Permanently erase every object in the bound BOOKS bucket, including
+            all books, users, reading progress, bookmarks, and app passwords.
+            The bucket binding stays connected and your bootstrap manager
+            account is recreated automatically.
+          </p>
+          <form action={resetLibrary} className="mt-5 flex flex-wrap gap-3">
+            <input
+              name="confirmation"
+              aria-label='Type "RESET" to confirm'
+              placeholder='Type "RESET" to confirm'
+              autoComplete="off"
+              pattern="RESET"
+              required
+              className={`${INPUT} min-w-56`}
+            />
+            <ResetLibraryButton />
+          </form>
+        </section>
+      )}
     </main>
   );
 }

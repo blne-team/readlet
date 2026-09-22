@@ -31,6 +31,10 @@ function setup() {
       calls.push("put");
       return {};
     },
+    async list() {
+      calls.push("list");
+      return { objects: [], truncated: false };
+    },
     async delete() {
       calls.push("delete");
     },
@@ -151,4 +155,37 @@ test("does not reserve free deletes or empty range reads", async () => {
 
   assert.deepEqual(context.calls, ["delete"]);
   assert.deepEqual(context.reservations, []);
+});
+
+test("erases every object in repeated batches", async () => {
+  const context = setup();
+  const remaining = ["catalog.json", "book.epub", "users.json"];
+  context.bucket.list = async (options) => {
+    assert.deepEqual(options, { limit: 1_000 });
+    context.calls.push("list");
+    return {
+      objects: remaining.slice(0, 2).map((key) => ({
+        key,
+        size: 1,
+        httpEtag: '"etag"',
+        uploaded: new Date(0),
+      })),
+      truncated: remaining.length > 2,
+    };
+  };
+  context.bucket.delete = async (keys) => {
+    context.calls.push("delete");
+    assert.ok(Array.isArray(keys));
+    remaining.splice(0, keys.length);
+  };
+
+  await createStorage(context.bucket, context.budget).eraseAll();
+
+  assert.deepEqual(remaining, []);
+  assert.deepEqual(context.calls, ["list", "delete", "list", "delete", "list"]);
+  assert.deepEqual(context.reservations, [
+    { classA: 1 },
+    { classA: 1 },
+    { classA: 1 },
+  ]);
 });

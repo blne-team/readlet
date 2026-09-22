@@ -22,13 +22,18 @@ export { pdfDate, readPdfMetadata } from "./pdf.js";
 export type {
   ProviderManifest,
   ProviderOption,
+  ResettableStorage,
   Storage,
   StorageAdmin,
   StoredContent,
   StoredObject,
   WritableStorage,
 } from "./provider.js";
-export { readOnlyStorage, writableStorage } from "./provider.js";
+export {
+  readOnlyStorage,
+  resettableStorage,
+  writableStorage,
+} from "./provider.js";
 export type { ByteRange, RangeRequest } from "./range.js";
 export {
   clampRange,

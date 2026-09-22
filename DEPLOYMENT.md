@@ -150,6 +150,16 @@ After Readlet opens:
 Do not make the R2 bucket public. Readlet serves authorized book and cover
 requests through the Worker.
 
+### Reset an initialized library
+
+The `/setup` page is only available while the Worker has no `BOOKS` binding.
+After initialization, the configured bootstrap manager can instead open
+**Books**, scroll to **Reset Cloudflare library**, type `RESET`, and reset the
+installation. This permanently deletes every object in the bound bucket and
+then recreates the signed-in bootstrap manager. The R2 binding and Readlet's
+usage-safety accounting stay in place; other users, books, reading state,
+bookmarks, and app passwords do not.
+
 ## Later deployments
 
 Every later push to `main` triggers a new Cloudflare build. The checked-in

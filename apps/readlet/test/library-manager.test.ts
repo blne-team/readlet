@@ -232,6 +232,51 @@ test("members cannot delete books through the service", async () => {
   assert.deepEqual(memory.writes, []);
 });
 
+test("resets every stored object and bootstraps the verified manager", async () => {
+  const entry = book("old-book", "Old Book");
+  const memory = memoryStorage({
+    ...objects([entry]),
+    orphan: "not reachable from the catalog",
+    [progressFile(manager.id)]: "old progress",
+  });
+  const recorded = recordingCache();
+  const services = createServices(memory.storage, recorded.cache);
+
+  await services.catalog.all();
+  await services.library.reset(
+    manager,
+    { subject: "cf-manager", email: manager.email },
+    manager.email,
+  );
+
+  assert.equal(memory.has("orphan"), false);
+  assert.equal(memory.has("old-book/old-book.epub"), false);
+  assert.equal(memory.has(progressFile(manager.id)), false);
+  const users = await services.users.list();
+  assert.equal(users.length, 1);
+  assert.equal(users[0]?.email, manager.email);
+  assert.equal(users[0]?.role, "manager");
+  assert.equal(users[0]?.accessSubject, manager.accessSubject);
+  assert.deepEqual(await services.catalog.all(), []);
+  assert.ok(recorded.calls.some((call) => call.op === "remove"));
+});
+
+test("only the configured bootstrap identity can reset the library", async () => {
+  const memory = memoryStorage(objects([book("kept", "Kept Book")]));
+  const services = createServices(memory.storage, nullCache());
+
+  await assert.rejects(
+    services.library.reset(
+      manager,
+      { subject: "cf-manager", email: manager.email },
+      "owner@example.com",
+    ),
+    /Only the bootstrap manager/,
+  );
+  assert.equal(memory.has("kept/kept.epub"), true);
+  assert.equal(memory.has(USERS_FILE), true);
+});
+
 test("read-only libraries refuse deletion before changing state", async () => {
   const entry = book("kept", "Kept Book");
   const memory = memoryStorage(objects([entry]), { writable: false });

@@ -7,12 +7,14 @@ import {
   LIBRARY_OPERATIONS_FILE,
   publishContribution as publishSyncContribution,
   rangedSource,
+  resettableStorage,
   type Storage,
   type User,
   writableStorage,
 } from "@readlet/core";
 import { readEpubSource } from "@readlet/sync/epub";
 import { readPdfSource } from "@readlet/sync/pdf";
+import type { AccessIdentity } from "@/services/access-identity";
 import type { CatalogService } from "@/services/catalog";
 import { reading, writing } from "@/services/errors";
 import type { ProgressService } from "@/services/progress";
@@ -38,6 +40,13 @@ export class ReadOnlyLibraryError extends Error {
   constructor() {
     super("This library cannot change books because its storage is read-only.");
     this.name = "ReadOnlyLibraryError";
+  }
+}
+
+export class LibraryResetUnavailableError extends Error {
+  constructor() {
+    super("This storage provider cannot reset a whole library.");
+    this.name = "LibraryResetUnavailableError";
   }
 }
 
@@ -139,6 +148,33 @@ export class LibraryManagerService {
 
   get writable(): boolean {
     return writableStorage(this.storage) !== null;
+  }
+
+  get resettable(): boolean {
+    return resettableStorage(this.storage) !== null;
+  }
+
+  /** Erases the provider and immediately bootstraps a fresh manager account. */
+  async reset(
+    actor: User,
+    identity: AccessIdentity,
+    bootstrapManagerEmail: string,
+  ): Promise<void> {
+    const target = resettableStorage(this.storage);
+    if (!target) {
+      throw new LibraryResetUnavailableError();
+    }
+    await this.users.assertManager(actor);
+    if (
+      actor.accessSubject !== identity.subject ||
+      identity.email !== bootstrapManagerEmail
+    ) {
+      throw new Error("Only the bootstrap manager can reset this library.");
+    }
+
+    await writing("the library reset", () => target.eraseAll());
+    await this.users.resolve(identity, bootstrapManagerEmail);
+    await this.catalog.invalidate();
   }
 
   /** Publish one EPUB or PDF; only the final catalog write exposes it. */
