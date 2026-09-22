@@ -7,7 +7,7 @@ import {
   accessIdentityForToken,
   accessToken,
 } from "@/services/access-identity";
-import { getServices } from "@/services/container";
+import { getServices, SetupRequiredError } from "@/services/container";
 import { UserAccessError } from "@/services/users";
 
 const LOCAL_DEVELOPMENT_IDENTITY: AccessIdentity = {
@@ -78,6 +78,12 @@ export async function routeUser(request: Request): Promise<User | Response> {
       return Response.json(
         { error: error.message },
         { status: 403, headers: { "cache-control": "no-store" } },
+      );
+    }
+    if (error instanceof SetupRequiredError) {
+      return Response.json(
+        { error: error.message, setup: "/setup" },
+        { status: 503, headers: { "cache-control": "no-store" } },
       );
     }
     throw error;

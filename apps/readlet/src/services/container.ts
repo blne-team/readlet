@@ -31,6 +31,13 @@ export type Services = {
   defer: ((work: Promise<unknown>) => void) | null;
 };
 
+export class SetupRequiredError extends Error {
+  constructor() {
+    super("This Readlet deployment has not been connected to an R2 bucket.");
+    this.name = "SetupRequiredError";
+  }
+}
+
 /**
  * Wires the services to a set of adapters. This is the whole composition, and
  * it knows nothing about any provider — give it storage backed by S3 or a
@@ -147,32 +154,15 @@ async function filesystemServices(): Promise<Services> {
 
 /** The library in R2, read through the Worker binding. */
 async function cloudflareServices(): Promise<Services> {
-  const { getCloudflareContext } = await import("@opennextjs/cloudflare");
   const { createStorage, createUsageBudget } = await import(
     "@readlet/provider-r2/worker"
   );
+  const context = await cloudflareContext();
 
-  // Reaching here without a Worker around it almost always means the app was
-  // started somewhere with no bindings — a plain Node server — while still
-  // built for Cloudflare. The underlying error says nothing about that.
-  const context = await getCloudflareContext({ async: true }).catch(
-    (cause: unknown) => {
-      throw new Error(
-        "No Cloudflare Worker context. If this is running on your own machine " +
-          "or a VPS, it wants the filesystem provider: set `storage.provider` " +
-          'to "fs" in readlet.config.json and rebuild, or start it with ' +
-          "READLET_PROVIDER=fs.",
-        { cause },
-      );
-    },
-  );
-
-  const { env, ctx } = context;
+  const { ctx } = context;
+  const env = context.env as typeof context.env & { BOOKS?: R2Bucket };
   if (!env.BOOKS) {
-    throw new Error(
-      "The Worker has no BOOKS binding. Add an r2_buckets entry to " +
-        "wrangler.jsonc naming the bucket the sync tool publishes to.",
-    );
+    throw new SetupRequiredError();
   }
   if (!env.R2_USAGE) {
     throw new Error(
@@ -218,6 +208,34 @@ async function cloudflareServices(): Promise<Services> {
   );
 }
 
+async function cloudflareContext() {
+  const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+  return getCloudflareContext({ async: true }).catch((cause: unknown) => {
+    throw new Error(
+      "No Cloudflare Worker context. If this is running on your own machine " +
+        "or a VPS, it wants the filesystem provider: set `storage.provider` " +
+        'to "fs" in readlet.config.json and rebuild, or start it with ' +
+        "READLET_PROVIDER=fs.",
+      { cause },
+    );
+  });
+}
+
+export function storageProvider(): "fs" | "r2" {
+  return (process.env.READLET_PROVIDER ??
+    process.env.READLET_PROVIDER_DEFAULT ??
+    "r2") === "fs"
+    ? "fs"
+    : "r2";
+}
+
+/** Whether this deployment still needs its one-time R2 installation. */
+export async function setupRequired(): Promise<boolean> {
+  if (override || storageProvider() === "fs") return false;
+  const { env } = await cloudflareContext();
+  return !(env as typeof env & { BOOKS?: R2Bucket }).BOOKS;
+}
+
 /**
  * The composition root: the one place that names a provider.
  *
@@ -233,10 +251,7 @@ async function cloudflareServices(): Promise<Services> {
 export async function getServices(): Promise<Services> {
   if (override) return override;
 
-  const provider =
-    process.env.READLET_PROVIDER ??
-    process.env.READLET_PROVIDER_DEFAULT ??
-    "r2";
-
-  return provider === "fs" ? filesystemServices() : cloudflareServices();
+  return storageProvider() === "fs"
+    ? filesystemServices()
+    : cloudflareServices();
 }

@@ -11,35 +11,13 @@ who can open and manage the library.
 You need a GitHub account, a Cloudflare account, and a Cloudflare Zero Trust
 team.
 
-## 1. Fork and configure Readlet
+## 1. Fork Readlet
 
-Fork the Readlet repository to your GitHub account. Make the following changes
-in your fork, either through GitHub's web editor or in a local checkout.
+Fork the Readlet repository to your GitHub account. The checked-in Worker
+configuration is intentionally account-independent: the first deployment has
+no `BOOKS` binding, and the authenticated setup page provisions it later.
 
-Update `apps/readlet/wrangler.jsonc`:
-
-- Set `name` to the Worker name you want to use.
-- Set `services[0].service` to the same Worker name.
-- Set `r2_buckets[0].bucket_name` to your R2 bucket name.
-- Add `r2_buckets[0].jurisdiction` only when the bucket uses a jurisdiction
-  such as `eu`; otherwise omit the property entirely. An empty string is not a
-  valid jurisdiction and causes Cloudflare API error `10021` during deploy.
-- Keep the `BOOKS` binding, Durable Object, rate-limit bindings, assets, and
-  `nodejs_compat` setting unchanged.
-
-For the first deployment, set `workers_dev` to `false` and leave custom routes
-unset. This lets you configure Cloudflare Access before making Readlet
-reachable at a public hostname. Commit these changes to `main`.
-
-## 2. Create the R2 bucket
-
-In the Cloudflare dashboard, open **R2 Object Storage → Create bucket** and use
-the bucket name and jurisdiction configured in `wrangler.jsonc`.
-
-Keep the bucket private: do not enable its public development URL or attach an
-R2 custom domain. Readlet serves books through the Worker's `BOOKS` binding.
-
-## 3. Connect Cloudflare to GitHub
+## 2. Connect Cloudflare to GitHub
 
 In the Cloudflare dashboard, open **Workers & Pages → Create application →
 Import a repository**. Authorize Cloudflare to access GitHub, select your
@@ -66,7 +44,7 @@ Save the configuration and start the first deployment. After the connection is
 created, Cloudflare receives GitHub push events and automatically rebuilds and
 deploys `main`.
 
-## 4. Protect the Worker with Cloudflare Access
+## 3. Protect the Worker with Cloudflare Access
 
 After the first deployment:
 
@@ -89,7 +67,7 @@ After the first deployment:
 These are Worker runtime settings. The `keep_vars: true` setting in
 `wrangler.jsonc` preserves them during later deployments.
 
-## 5. Add the public hostname
+## 4. Add the public hostname
 
 Once Access and the runtime variables are configured, expose the Worker using
 one of these options:
@@ -98,10 +76,23 @@ one of these options:
 - enable the Worker's `workers.dev` URL, set `workers_dev` to `true` in
   `apps/readlet/wrangler.jsonc`, and push the change to `main`.
 
+## 5. Create the private library
+
+Create a temporary Cloudflare API token scoped to this account with these
+permissions:
+
+- **Workers Scripts: Edit**
+- **Workers R2 Storage: Edit**
+
 Open the hostname in a private browser window and sign in with
-`READLET_BOOTSTRAP_MANAGER_EMAIL`. The first successful sign-in creates the
-Readlet manager account. Confirm that an uninvited identity cannot open the
-library and that the R2 bucket still has no public URL.
+`READLET_BOOTSTRAP_MANAGER_EMAIL`. Readlet redirects the first verified manager
+to `/setup`. Enter the account ID, the Worker name shown under **Workers &
+Pages**, the desired bucket name and jurisdiction, and the temporary token.
+
+Readlet verifies that the named Worker is this deployment, creates the private
+bucket, and attaches it as `BOOKS`. It never stores the token. Revoke the token
+after setup succeeds, open Readlet, and confirm that the manager account is
+created and the bucket still has no public URL or custom domain.
 
 Every later push to `main` triggers a new Cloudflare build. Deploying the
 application does not publish the local `books/` directory; see

@@ -6,10 +6,11 @@ positions, bookmarks, highlights, and notes.
 
 ## The first manager
 
-Set `READLET_BOOTSTRAP_MANAGER_EMAIL` to the email that owns the library. When
-that exact verified Access identity first opens Readlet, the empty user
-directory is created and that person becomes its first manager. No other first
-visitor can initialize the library.
+Set `READLET_BOOTSTRAP_MANAGER_EMAIL` to the email that owns the library. For an
+R2 deployment, that exact verified Access identity also owns the one-time setup
+page. When they open the installed library, the empty user directory is created
+and that person becomes its first manager. No other visitor can initialize the
+library.
 
 The bootstrap setting is not used to grant a role after the directory exists.
 Readlet keeps at least one active manager, so the last one cannot be disabled,

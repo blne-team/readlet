@@ -37,6 +37,7 @@
     "@readlet/provider-fs": "workspace:*",
     "@readlet/provider-r2": "workspace:*",
     "@readlet/sync": "workspace:*",
+    "cloudflare": "4.5.0",
     "epubjs": "^0.3.93",
     "jose": "^6.2.12",
     "lucide-react": "^1.33.0",

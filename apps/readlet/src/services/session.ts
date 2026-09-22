@@ -6,6 +6,7 @@ import {
   type AccessIdentity,
   AccessIdentityError,
 } from "@/services/access-identity";
+import { SetupRequiredError } from "@/services/container";
 import { identityForHeaders, userForHeaders } from "@/services/request-user";
 import { UserAccessError } from "@/services/users";
 
@@ -23,6 +24,7 @@ export async function pageUser(): Promise<User> {
   try {
     return await currentUser();
   } catch (error) {
+    if (error instanceof SetupRequiredError) redirect("/setup");
     if (
       error instanceof AccessIdentityError ||
       error instanceof UserAccessError
@@ -33,8 +35,18 @@ export async function pageUser(): Promise<User> {
   }
 }
 
+/** A verified Access identity, without requiring an installed library. */
+export async function pageIdentity(): Promise<AccessIdentity> {
+  try {
+    return await currentIdentity();
+  } catch (error) {
+    if (error instanceof AccessIdentityError) redirect("/access-denied");
+    throw error;
+  }
+}
+
 export async function requireManager(): Promise<User> {
-  const user = await currentUser();
+  const user = await pageUser();
   if (user.role !== "manager") {
     throw new UserAccessError("Manager access is required.");
   }

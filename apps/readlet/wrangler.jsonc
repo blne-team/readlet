@@ -8,6 +8,7 @@
   "keep_vars": true,
   "vars": {
     "NEXT_TELEMETRY_DISABLED": "1",
+    "READLET_INSTALLATION": "1",
     "READLET_R2_BILLING_DAY": "1"
   },
   "workers_dev": true,
@@ -16,21 +17,23 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "services": [
-    {
-      "binding": "WORKER_SELF_REFERENCE",
-      "service": "readlet"
-    }
-  ],
   "observability": {
     "enabled": false
   },
-  "r2_buckets": [
-    {
-      "binding": "BOOKS",
-      "bucket_name": "books"
+  // BOOKS is attached by Readlet's first-run setup. Preserve that binding when
+  // later Git builds upload a new version whose source config cannot name the
+  // account-specific bucket.
+  "unsafe": {
+    "metadata": {
+      "keep_bindings": [
+        "plain_text",
+        "json",
+        "secret_text",
+        "secret_key",
+        "r2_bucket"
+      ]
     }
-  ],
+  },
   "durable_objects": {
     "bindings": [
       {
