@@ -75,6 +75,11 @@ jobs:
       # the build imports are built first.
       - run: pnpm bundle
 
+      # Also checks that a deploy cannot discard the dashboard-managed BOOKS
+      # binding and that no deployment credentials were bundled into code.
+      - run: node ../../tools/check-worker-env.mjs
+        working-directory: apps/readlet
+
   test:
     name: Tests
     runs-on: ubuntu-latest

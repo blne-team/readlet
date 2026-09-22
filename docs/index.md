@@ -89,9 +89,11 @@ pnpm --filter @readlet/app exec wrangler login
 pnpm run deploy
 ```
 
-Two checked-in files carry the bucket and Worker name, and you need to edit both
-— see [the R2 provider](providers/r2.md). Configure Access and the R2 budget's
-sync credentials there, then run `pnpm sync`.
+Create a private R2 bucket in the Cloudflare dashboard and attach it to the
+deployed Worker with the binding name `BOOKS`. The setup page checks that
+credentialless connection and initializes the first manager. See
+[the R2 provider](providers/r2.md), configure Access and the sync credentials
+described there, then run `pnpm sync`.
 
 ## What you get
 

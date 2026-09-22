@@ -8,7 +8,6 @@
   "keep_vars": true,
   "vars": {
     "NEXT_TELEMETRY_DISABLED": "1",
-    "READLET_INSTALLATION": "1",
     "READLET_R2_BILLING_DAY": "1"
   },
   "workers_dev": true,
@@ -20,9 +19,9 @@
   "observability": {
     "enabled": false
   },
-  // BOOKS is attached by Readlet's first-run setup. Preserve that binding when
-  // later Git builds upload a new version whose source config cannot name the
-  // account-specific bucket.
+  // BOOKS is attached manually in the Cloudflare dashboard. Preserve that
+  // binding when later Git builds upload a version whose source config cannot
+  // name the account-specific bucket.
   "unsafe": {
     "metadata": {
       "keep_bindings": [

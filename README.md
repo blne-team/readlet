@@ -45,8 +45,9 @@ running the Node server without Docker.
 
 Readlet can run as a Worker with a private R2 bucket. Connect the repository to
 Cloudflare, configure Access and the three identity variables above, then sign
-in as the bootstrap manager. Readlet's first-run page creates and binds the
-private bucket. Follow the [deployment guide](DEPLOYMENT.md) for the complete
+in as the bootstrap manager. Readlet's first-run page guides you through
+creating a private bucket and attaching it as the Worker's credentialless
+`BOOKS` binding. Follow the [deployment guide](DEPLOYMENT.md) for the complete
 flow. Once setup finishes, add books at `/manage`.
 
 ## Use the library

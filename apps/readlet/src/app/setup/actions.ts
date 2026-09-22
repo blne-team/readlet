@@ -3,57 +3,48 @@
 import { redirect } from "next/navigation";
 import { accessConfig } from "@/services/access-identity";
 import {
-  ProvisioningError,
-  type ProvisioningValidation,
-  provisionCloudflare,
-  validateProvisioningInput,
-} from "@/services/cloudflare-provisioning";
-import { setupRequired, storageProvider } from "@/services/container";
+  getServices,
+  setupRequired,
+  storageProvider,
+} from "@/services/container";
 import { pageIdentity } from "@/services/session";
 
 export type SetupState = {
-  status: "idle" | "error" | "complete";
+  status: "idle" | "waiting" | "error";
   message?: string;
-  errors?: ProvisioningValidation;
 };
 
-export async function installReadlet(
+export async function checkLibraryConnection(
   _previous: SetupState,
-  form: FormData,
+  _form: FormData,
 ): Promise<SetupState> {
   const identity = await pageIdentity();
-  if (identity.email !== accessConfig().bootstrapManagerEmail) {
+  const config = accessConfig();
+  if (identity.email !== config.bootstrapManagerEmail) {
     redirect("/access-denied");
   }
-  if (storageProvider() !== "r2" || !(await setupRequired())) {
+  if (storageProvider() !== "r2") {
     redirect("/");
   }
 
-  const parsed = validateProvisioningInput({
-    accountId: form.get("accountId") ?? undefined,
-    workerName: form.get("workerName") ?? undefined,
-    bucketName: form.get("bucketName") ?? undefined,
-    jurisdiction: form.get("jurisdiction") ?? undefined,
-    apiToken: form.get("apiToken") ?? undefined,
-  });
-  if (!parsed.input) {
+  if (await setupRequired()) {
     return {
-      status: "error",
-      message: "Check the highlighted fields and try again.",
-      errors: parsed.errors,
+      status: "waiting",
+      message:
+        "Readlet cannot see the BOOKS binding yet. Check its name, save the Worker settings, wait a few seconds, and try again.",
     };
   }
 
   try {
-    await provisionCloudflare(parsed.input);
-    return { status: "complete" };
-  } catch (error) {
+    const { users } = await getServices();
+    await users.resolve(identity, config.bootstrapManagerEmail);
+  } catch {
     return {
       status: "error",
       message:
-        error instanceof ProvisioningError
-          ? error.message
-          : "Readlet could not complete the Cloudflare setup.",
+        "The BOOKS binding exists, but Readlet could not read and write the bucket. Confirm that it points to the intended R2 bucket and try again.",
     };
   }
+
+  redirect("/");
 }

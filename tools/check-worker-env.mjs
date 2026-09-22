@@ -27,3 +27,16 @@ if (included.length) {
       "Move them out of .env files before deploying.",
   );
 }
+
+// BOOKS is selected in the Cloudflare dashboard because its bucket name is
+// deployment-specific. Every source-driven deployment must preserve that
+// binding or a routine push would disconnect an installed library.
+const wrangler = readFileSync(path.resolve("wrangler.jsonc"), "utf8");
+const keptBindings = wrangler.match(
+  /"keep_bindings"\s*:\s*\[([\s\S]*?)\]/,
+)?.[1];
+if (!keptBindings?.includes('"r2_bucket"')) {
+  throw new Error(
+    "wrangler.jsonc must preserve r2_bucket bindings so deployments keep the dashboard-managed BOOKS bucket.",
+  );
+}

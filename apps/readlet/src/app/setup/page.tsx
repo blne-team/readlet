@@ -28,8 +28,9 @@ export default async function SetupPage() {
         Connect your private library
       </h1>
       <p className="mt-3 max-w-xl leading-7 text-secondary">
-        Readlet will create a private R2 bucket and attach it to this Worker as
-        the BOOKS binding. The bucket will not receive a public URL.
+        Create the private bucket in Cloudflare and attach it to this Worker.
+        Readlet will verify the credentialless binding before it initializes the
+        library.
       </p>
 
       <SetupForm />
