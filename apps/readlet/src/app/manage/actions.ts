@@ -2,9 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { accessConfig } from "@/services/access-identity";
 import { getServices } from "@/services/container";
-import { pageIdentity, requireManager } from "@/services/session";
+import { requireManager } from "@/services/session";
 
 export async function deleteBook(form: FormData): Promise<void> {
   const actor = await requireManager();
@@ -29,24 +28,5 @@ export async function deleteBook(form: FormData): Promise<void> {
   }
   revalidatePath("/");
   revalidatePath("/manage");
-  redirect("/manage");
-}
-
-export async function resetLibrary(form: FormData): Promise<void> {
-  const [actor, identity] = await Promise.all([
-    requireManager(),
-    pageIdentity(),
-  ]);
-  if (form.get("confirmation") !== "RESET") {
-    throw new Error('Type "RESET" to confirm the library reset.');
-  }
-  const { bootstrapManagerEmail } = accessConfig();
-  const { library } = await getServices();
-  await library.reset(actor, identity, bootstrapManagerEmail);
-
-  revalidatePath("/");
-  revalidatePath("/manage");
-  revalidatePath("/users");
-  revalidatePath("/resources");
   redirect("/manage");
 }

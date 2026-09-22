@@ -1,12 +1,23 @@
 "use client";
 
-import { BookOpen, ChevronDown, HardDrive, Users } from "lucide-react";
+import {
+  BookOpen,
+  ChevronDown,
+  HardDrive,
+  Settings,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Avatar } from "@/app/avatar";
 import { managerDestinations } from "@/app/management-links";
 
-const icons = { "/manage": BookOpen, "/users": Users, "/resources": HardDrive };
+const icons = {
+  "/manage": BookOpen,
+  "/users": Users,
+  "/resources": HardDrive,
+  "/settings": Settings,
+};
 
 export function AccountMenu({ name }: { name: string }) {
   const [open, setOpen] = useState(false);
